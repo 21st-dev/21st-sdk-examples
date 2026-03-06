@@ -378,7 +378,7 @@ function FormAgent({ chat }: { chat: Chat<UIMessage> }) {
   }
 
   return (
-    <main className="h-screen bg-neutral-950 text-neutral-100 grid grid-cols-[250px_minmax(0,1fr)]">
+    <main className="h-screen bg-neutral-950 text-neutral-100 grid grid-cols-[282px_minmax(0,1fr)]">
       <section className="border-r border-neutral-800 p-4 overflow-y-auto">
         <div className="mb-5 rounded-full border border-neutral-800 bg-neutral-900 p-1">
           <div className="grid grid-cols-3 gap-1">
