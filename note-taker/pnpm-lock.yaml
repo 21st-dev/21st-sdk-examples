@@ -9,17 +9,17 @@ importers:
   .:
     dependencies:
       '@21st-sdk/agent':
-        specifier: ^0.0.5
-        version: 0.0.5(zod@3.25.76)
+        specifier: 0.0.6
+        version: 0.0.6(zod@3.25.76)
       '@21st-sdk/nextjs':
-        specifier: ^0.0.9
-        version: 0.0.9(@21st-sdk/react@0.1.3(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.149(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(ai@5.0.149(zod@3.25.76))(next@15.5.12(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: 0.0.10
+        version: 0.0.10(@21st-sdk/react@0.1.4(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.149(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(ai@5.0.149(zod@3.25.76))(next@15.5.12(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@21st-sdk/node':
-        specifier: ^0.0.3
-        version: 0.0.3
+        specifier: 0.0.4
+        version: 0.0.4
       '@21st-sdk/react':
-        specifier: ^0.1.3
-        version: 0.1.3(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.149(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: 0.1.4
+        version: 0.1.4(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.149(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@ai-sdk/react':
         specifier: ^2.0.0
         version: 2.0.151(react@19.2.4)(zod@3.25.76)
@@ -43,8 +43,8 @@ importers:
         version: 3.25.76
     devDependencies:
       '@21st-sdk/cli':
-        specifier: ^0.0.12
-        version: 0.0.12
+        specifier: 0.0.15
+        version: 0.0.15
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.15
@@ -69,30 +69,30 @@ importers:
 
 packages:
 
-  '@21st-sdk/agent@0.0.5':
-    resolution: {integrity: sha512-T/DKA58mCl0nI5thPuTZtaVV9whtOlSalvDLVH7VUHAdXKNOlR9EAXghwx4PENgpKwedGy6GTfLDld86HCITcA==}
+  '@21st-sdk/agent@0.0.6':
+    resolution: {integrity: sha512-v9UaYjLC2y0Iw2BQeJ5NguWh64DEZU5YNNmyFkeoPKibP2G6XiW5FCrwP2bsN7wnluWFUoHJQsD6hPVlqgEtgg==}
     peerDependencies:
       zod: '>=3.24'
 
-  '@21st-sdk/cli@0.0.12':
-    resolution: {integrity: sha512-qUlZ0kgv6T6uLauIsW77oGUyPFgiSXEufD/hKX1GnQTvm+KNrpd3jxzRdgGZloe9yudai3HquEx03x0lU407oQ==}
+  '@21st-sdk/cli@0.0.15':
+    resolution: {integrity: sha512-rqqpu83A/zcVu9BS7iNJQosQkizDcNVI7JMMIkBmfFVHkh0bDtWl0DgAKT+WPrdvaCUYh/BIHkr1yKj4H/pH9w==}
     hasBin: true
 
-  '@21st-sdk/nextjs@0.0.9':
-    resolution: {integrity: sha512-gRha+f/t/8S9H8SBJE4JwIP+qzsj67weSPHnnE0mbx5UFtodCxQXFA9a2XXDflsGHPEVU3A4xKWRp+EfJWlPrA==}
+  '@21st-sdk/nextjs@0.0.10':
+    resolution: {integrity: sha512-Ww7stQya2H0nIbSyBflHOi3UiD8KKt1vvPc9yIeASwbRABHxLjyd5u+ZGSPesC/AB95fqYqyGpBtEHzw6MiUBQ==}
     peerDependencies:
-      '@21st-sdk/react': ^0.1.3
+      '@21st-sdk/react': ^0.1.4
       '@ai-sdk/react': ^2.0.0
       ai: ^5.0.0
       next: '>=14.0.0'
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
 
-  '@21st-sdk/node@0.0.3':
-    resolution: {integrity: sha512-KEfJN9Sj2yQWISvdcXFaTou7vmCm3Slu8jxCSt3PlLv79L03XU8p0RZkBidzyXAbLmfpRsb4GPF4q8EjPFL5tg==}
+  '@21st-sdk/node@0.0.4':
+    resolution: {integrity: sha512-qBfqQqEzFwxm6W+hFG5sBmWKF00i5yliU71jCzmLS9CGd7W1xLlBLfLrNPw/+mifvX2rDsy/as3cIuLsanJGdw==}
 
-  '@21st-sdk/react@0.1.3':
-    resolution: {integrity: sha512-4Lpf8N/mM5Cx83muY/BTqabrPqFZgTwPDkhdYfkgbfdH+tzcYL041igkGV7jfHkLhiGQhovV41+p4IRGRpQYfg==}
+  '@21st-sdk/react@0.1.4':
+    resolution: {integrity: sha512-e3KXIiuW6ujij2412dWbI6Vswoqd/ULqF1+Ska2LmkDT9Dte+6bn7qR8WNaop7UrCWvruWxNY2nvptHHjBhGSQ==}
     peerDependencies:
       '@ai-sdk/react': ^2.0.0
       ai: ^5.0.0
@@ -1589,27 +1589,27 @@ packages:
 
 snapshots:
 
-  '@21st-sdk/agent@0.0.5(zod@3.25.76)':
+  '@21st-sdk/agent@0.0.6(zod@3.25.76)':
     dependencies:
       zod: 3.25.76
 
-  '@21st-sdk/cli@0.0.12':
+  '@21st-sdk/cli@0.0.15':
     dependencies:
       '@clack/prompts': 1.1.0
       esbuild: 0.24.2
 
-  '@21st-sdk/nextjs@0.0.9(@21st-sdk/react@0.1.3(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.149(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(ai@5.0.149(zod@3.25.76))(next@15.5.12(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@21st-sdk/nextjs@0.0.10(@21st-sdk/react@0.1.4(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.149(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(ai@5.0.149(zod@3.25.76))(next@15.5.12(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
-      '@21st-sdk/react': 0.1.3(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.149(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@21st-sdk/react': 0.1.4(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.149(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@ai-sdk/react': 2.0.151(react@19.2.4)(zod@3.25.76)
       ai: 5.0.149(zod@3.25.76)
       next: 15.5.12(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
-  '@21st-sdk/node@0.0.3': {}
+  '@21st-sdk/node@0.0.4': {}
 
-  '@21st-sdk/react@0.1.3(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.149(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@21st-sdk/react@0.1.4(@ai-sdk/react@2.0.151(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.149(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@ai-sdk/react': 2.0.151(react@19.2.4)(zod@3.25.76)
       ai: 5.0.149(zod@3.25.76)
