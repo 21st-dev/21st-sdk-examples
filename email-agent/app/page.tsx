@@ -68,8 +68,8 @@ function ChatPanel({
   )
 
   return (
-    <main className="h-screen grid grid-cols-[340px_minmax(0,1fr)] bg-neutral-950 text-neutral-100">
-      <aside className="border-r border-neutral-800 p-4 overflow-y-auto">
+    <main className="h-screen min-h-0 grid grid-cols-[340px_minmax(0,1fr)] bg-neutral-950 text-neutral-100">
+      <aside className="min-h-0 border-r border-neutral-800 p-4 overflow-y-auto">
         <h1 className="text-lg font-semibold">Email Agent Boilerplate</h1>
         <p className="mt-2 text-sm text-neutral-400">
           Hackathon template for outbound + inbox workflows with 21st SDK + AgentMail.
@@ -99,15 +99,17 @@ function ChatPanel({
         </section>
       </aside>
 
-      <AgentChat
-        messages={messages}
-        onSend={(msg) => sendMessage({ text: msg.content })}
-        status={status}
-        onStop={stop}
-        error={error ?? undefined}
-        colorMode="dark"
-        className="h-full"
-      />
+      <section className="min-h-0 overflow-hidden">
+        <AgentChat
+          messages={messages}
+          onSend={(msg) => sendMessage({ text: msg.content })}
+          status={status}
+          onStop={stop}
+          error={error ?? undefined}
+          colorMode="dark"
+          className="h-full min-h-0"
+        />
+      </section>
     </main>
   )
 }
