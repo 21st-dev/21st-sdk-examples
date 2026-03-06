@@ -1,4 +1,4 @@
-import { agent } from "@an-sdk/agent"
+import { agent } from "@21st-sdk/agent"
 import { webScraperTools } from "./lib/tools"
 
 export default agent({

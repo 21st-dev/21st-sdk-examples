@@ -1,4 +1,4 @@
-import { createAnTokenHandler } from "@an-sdk/nextjs/server"
+import { createAnTokenHandler } from "@21st-sdk/nextjs/server"
 
 export const POST = createAnTokenHandler({
   apiKey: process.env.AN_API_KEY!,

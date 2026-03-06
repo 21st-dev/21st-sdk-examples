@@ -1,10 +1,10 @@
-# An SDK — Next.js Fill Form Example
+# 21st SDK — Next.js Fill Form Example
 
 Build a side-by-side form UI + chat assistant where the agent fills form fields via a custom tool with discriminated union schemas.
 
 ## What you'll build
 
-A Next.js app with a tabbed form panel on the left and an An chat panel on the right. The agent reads the active form's schema and current data via context injection, then calls a single `fill_form` tool to patch fields. The client parses the tool output and applies changes in real time.
+A Next.js app with a tabbed form panel on the left and an agent chat panel on the right. The agent reads the active form's schema and current data via context injection, then calls a single `fill_form` tool to patch fields. The client parses the tool output and applies changes in real time.
 
 - **Three form types** — Profile, Order, and Support
 - **Discriminated union input schema** — type-safe per form via Zod
@@ -14,7 +14,7 @@ A Next.js app with a tabbed form panel on the left and an An chat panel on the r
 ## Prerequisites
 
 - Node.js 18+
-- An [An](https://an.dev) account with an API key
+- A [21st Agents](https://21st.dev/agents) account with an API key
 
 ## Environment variables
 
@@ -35,8 +35,8 @@ npm install
 ### 2. Deploy the agent
 
 ```bash
-npx @an-sdk/cli login
-npx @an-sdk/cli deploy
+npx @21st-sdk/cli login
+npx @21st-sdk/cli deploy
 ```
 
 ### 3. Configure and run
@@ -56,7 +56,7 @@ Open [http://localhost:3000](http://localhost:3000).
 Exposes a single `fill_form` tool with a discriminated union input schema — the `formId` field determines which patch schema is validated:
 
 ```typescript
-import { agent, tool } from "@an-sdk/agent"
+import { agent, tool } from "@21st-sdk/agent"
 import { z } from "zod"
 
 const profilePatchSchema = z.object({
@@ -167,4 +167,4 @@ nextjs-fill-form/
 
 - Add more form types by extending the discriminated union
 - Add validation feedback — show errors from `safeParse` in the chat
-- Learn about agent tools — see [Build & Deploy](https://an.dev/an/docs/agent-projects)
+- Learn about agent tools — see [Build & Deploy](https://21st.dev/agents/docs/agent-projects)

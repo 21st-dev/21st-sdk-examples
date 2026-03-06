@@ -1,4 +1,4 @@
-import type { CustomToolRendererProps } from "@an-sdk/react"
+import type { CustomToolRendererProps } from "@21st-sdk/react"
 
 function parseOutput(output: unknown): Record<string, unknown> | null {
   if (!output) return null

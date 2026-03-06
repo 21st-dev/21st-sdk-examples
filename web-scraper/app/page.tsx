@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useChat } from "@ai-sdk/react"
-import { createAnChat, AnAgentChat } from "@an-sdk/nextjs"
+import { createAnChat, AnAgentChat } from "@21st-sdk/nextjs"
 import type { Chat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import type { ThreadItem } from "./types"
@@ -11,7 +11,7 @@ import {
   BrowserUseExtractRenderer,
   SubmitExtractionRenderer,
 } from "./components/extraction-tool-renderers"
-import "@an-sdk/react/styles.css"
+import "@21st-sdk/react/styles.css"
 
 const AGENT_SLUG = process.env.NEXT_PUBLIC_AN_AGENT_SLUG || "web-scraper"
 

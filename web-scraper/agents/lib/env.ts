@@ -38,7 +38,7 @@ export function getBrowserUseConfig(): BrowserUseConfigResult {
     return {
       ok: false,
       error:
-        "BROWSER_USE_API_KEY is not configured in runtime env. Set it in AN dashboard env vars and redeploy.",
+        "BROWSER_USE_API_KEY is not configured in runtime env. Set it in 21st dashboard env vars and redeploy.",
     }
   }
 

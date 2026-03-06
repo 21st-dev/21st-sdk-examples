@@ -1,16 +1,16 @@
-# An SDK Examples
+# 21st SDK Examples
 
-Example projects for the [An SDK](https://an.dev) — deploy AI coding agents and connect them to your app.
+Example projects for the [21st SDK](https://21st.dev/agents) — deploy AI coding agents and connect them to your app.
 
 ## Examples
 
 | Example | Description | Stack |
 |---------|-------------|-------|
-| [`nextjs-chat`](./nextjs-chat) | Chat UI connected to a deployed agent with web search | Next.js, @an-sdk |
-| [`nextjs-fill-form`](./nextjs-fill-form) | AI-powered form filling with tabbed forms + chat | Next.js, React Hook Form, @an-sdk |
-| [`email-agent`](./email-agent) | Email operations copilot — send, read inbox, auto-reply via AgentMail | Next.js, AgentMail, @an-sdk |
-| [`note-taker`](./note-taker) | AI notebook assistant with persistent notes via Convex | Next.js, Convex, @an-sdk |
-| [`monitor-agent`](./monitor-agent) | Service health monitoring with Slack alerts | Node.js CLI, @an-sdk |
+| [`nextjs-chat`](./nextjs-chat) | Chat UI connected to a deployed agent with web search | Next.js, @21st-sdk |
+| [`nextjs-fill-form`](./nextjs-fill-form) | AI-powered form filling with tabbed forms + chat | Next.js, React Hook Form, @21st-sdk |
+| [`email-agent`](./email-agent) | Email operations copilot — send, read inbox, auto-reply via AgentMail | Next.js, AgentMail, @21st-sdk |
+| [`note-taker`](./note-taker) | AI notebook assistant with persistent notes via Convex | Next.js, Convex, @21st-sdk |
+| [`monitor-agent`](./monitor-agent) | Service health monitoring with Slack alerts | Node.js CLI, @21st-sdk |
 
 ## Quick Start
 
@@ -27,9 +27,9 @@ pnpm dev
 
 ## Links
 
-- [an.dev](https://an.dev)
-- [An Documentation](https://an.dev/docs)
-- [@an-sdk/agent](https://www.npmjs.com/package/@an-sdk/agent)
-- [@an-sdk/react](https://www.npmjs.com/package/@an-sdk/react)
-- [@an-sdk/nextjs](https://www.npmjs.com/package/@an-sdk/nextjs)
-- [@an-sdk/cli](https://www.npmjs.com/package/@an-sdk/cli)
+- [21st Agents](https://21st.dev/agents)
+- [21st Docs](https://21st.dev/agents/docs)
+- [@21st-sdk/agent](https://www.npmjs.com/package/@21st-sdk/agent)
+- [@21st-sdk/react](https://www.npmjs.com/package/@21st-sdk/react)
+- [@21st-sdk/nextjs](https://www.npmjs.com/package/@21st-sdk/nextjs)
+- [@21st-sdk/cli](https://www.npmjs.com/package/@21st-sdk/cli)

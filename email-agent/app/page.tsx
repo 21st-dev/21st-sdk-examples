@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useChat } from "@ai-sdk/react"
-import { AnAgentChat, createAnChat } from "@an-sdk/nextjs"
+import { AnAgentChat, createAnChat } from "@21st-sdk/nextjs"
 import type { Chat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
-import "@an-sdk/react/styles.css"
+import "@21st-sdk/react/styles.css"
 
 function ChatPanel({ chat }: { chat: Chat<UIMessage> }) {
   const { messages, sendMessage, status, stop, error } = useChat({ chat })
@@ -23,7 +23,7 @@ function ChatPanel({ chat }: { chat: Chat<UIMessage> }) {
       <aside className="border-r border-neutral-800 p-4 overflow-y-auto">
         <h1 className="text-lg font-semibold">Email Agent Boilerplate</h1>
         <p className="mt-2 text-sm text-neutral-400">
-          Hackathon template for outbound + inbox workflows with AN + AgentMail.
+          Hackathon template for outbound + inbox workflows with 21st SDK + AgentMail.
         </p>
 
         <section className="mt-6 space-y-2">

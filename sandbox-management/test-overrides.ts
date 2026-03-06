@@ -3,7 +3,7 @@
  * Verifies that sandboxes.create({ files, envs, setup }) applies
  * overrides on top of the agent's deployed sandbox config.
  */
-import { AnClient } from "@an-sdk/node"
+import { AnClient } from "@21st-sdk/node"
 
 const AN_API_KEY = process.env.AN_API_KEY
 const RELAY_URL = process.env.AN_RELAY_URL || "https://relay.an.dev"

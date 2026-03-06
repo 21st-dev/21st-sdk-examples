@@ -1,4 +1,4 @@
-# AN SDK - Web Scraper (Browser Use)
+# 21st SDK - Web Scraper (Browser Use)
 
 Web scraping agent that **must use Browser Use Cloud** to extract structured data from dynamic pages and SPAs.
 

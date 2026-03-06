@@ -8,21 +8,21 @@ importers:
 
   .:
     dependencies:
+      '@21st-sdk/agent':
+        specifier: ^0.0.5
+        version: 0.0.5(zod@3.25.76)
+      '@21st-sdk/nextjs':
+        specifier: ^0.0.9
+        version: 0.0.9(@21st-sdk/react@0.1.3(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.137(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(ai@5.0.137(zod@3.25.76))(next@15.5.12(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@21st-sdk/node':
+        specifier: ^0.0.3
+        version: 0.0.3
+      '@21st-sdk/react':
+        specifier: ^0.1.3
+        version: 0.1.3(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.137(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@ai-sdk/react':
         specifier: ^2.0.0
         version: 2.0.139(react@19.2.4)(zod@3.25.76)
-      '@an-sdk/agent':
-        specifier: ^0.0.4
-        version: 0.0.4(zod@3.25.76)
-      '@an-sdk/nextjs':
-        specifier: ^0.0.8
-        version: 0.0.8(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(@an-sdk/react@0.0.6(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.137(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(ai@5.0.137(zod@3.25.76))(next@15.5.12(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@an-sdk/node':
-        specifier: ^0.0.2
-        version: 0.0.2
-      '@an-sdk/react':
-        specifier: ^0.0.6
-        version: 0.0.6(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.137(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       ai:
         specifier: ^5.0.0
         version: 5.0.137(zod@3.25.76)
@@ -63,6 +63,32 @@ importers:
 
 packages:
 
+  '@21st-sdk/agent@0.0.5':
+    resolution: {integrity: sha512-T/DKA58mCl0nI5thPuTZtaVV9whtOlSalvDLVH7VUHAdXKNOlR9EAXghwx4PENgpKwedGy6GTfLDld86HCITcA==}
+    peerDependencies:
+      zod: '>=3.24'
+
+  '@21st-sdk/nextjs@0.0.9':
+    resolution: {integrity: sha512-gRha+f/t/8S9H8SBJE4JwIP+qzsj67weSPHnnE0mbx5UFtodCxQXFA9a2XXDflsGHPEVU3A4xKWRp+EfJWlPrA==}
+    peerDependencies:
+      '@21st-sdk/react': ^0.1.3
+      '@ai-sdk/react': ^2.0.0
+      ai: ^5.0.0
+      next: '>=14.0.0'
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+
+  '@21st-sdk/node@0.0.3':
+    resolution: {integrity: sha512-KEfJN9Sj2yQWISvdcXFaTou7vmCm3Slu8jxCSt3PlLv79L03XU8p0RZkBidzyXAbLmfpRsb4GPF4q8EjPFL5tg==}
+
+  '@21st-sdk/react@0.1.3':
+    resolution: {integrity: sha512-4Lpf8N/mM5Cx83muY/BTqabrPqFZgTwPDkhdYfkgbfdH+tzcYL041igkGV7jfHkLhiGQhovV41+p4IRGRpQYfg==}
+    peerDependencies:
+      '@ai-sdk/react': ^2.0.0
+      ai: ^5.0.0
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+
   '@ai-sdk/gateway@2.0.43':
     resolution: {integrity: sha512-wVrXKw0ldcU04Y8EY3vR+qPdogZCZEj8pnkpRNRF552jqYPPVY88atPiC9s6XOyE+k6Y1YnusYXqwp6KKaBGAA==}
     engines: {node: '>=18'}
@@ -92,32 +118,6 @@ packages:
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
-
-  '@an-sdk/agent@0.0.4':
-    resolution: {integrity: sha512-Eu97KAaBc9U7Rxybmq8cMC46QzDJiWjOnLvDP7N9A82gFM12pE2PHi1Ay3ZS+xvMYdik7kEo8D42xHAl0TALWQ==}
-    peerDependencies:
-      zod: '>=3.24'
-
-  '@an-sdk/nextjs@0.0.8':
-    resolution: {integrity: sha512-KzcCNbXw3l29TitokvoTSp9B1+pI+B70Wbjs85vqCdq4d9efYnhTuHQTeMgp+tw4+OtGaOUAuUrpiiBZE92Okg==}
-    peerDependencies:
-      '@ai-sdk/react': ^2.0.0
-      '@an-sdk/react': ^0.0.5
-      ai: ^5.0.0
-      next: '>=14.0.0'
-      react: ^18.0.0 || ^19.0.0
-      react-dom: ^18.0.0 || ^19.0.0
-
-  '@an-sdk/node@0.0.2':
-    resolution: {integrity: sha512-R9eef/AplTNgE279n5XCwDA3wd2HmtMUEcEHQrj/tZqDLCV1czLfOX5g6Y24gKH+neY7GoBgsxbprY+6tm86uA==}
-
-  '@an-sdk/react@0.0.6':
-    resolution: {integrity: sha512-r8FpB1cy9GtKoKiZcmbFk+7st344dCNNOqWtCyVhIkvt1JYUbFOItL7I9bIaNsTo1tKDxA6rWMel01Sg4qQMHA==}
-    peerDependencies:
-      '@ai-sdk/react': ^2.0.0
-      ai: ^5.0.0
-      react: ^18.0.0 || ^19.0.0
-      react-dom: ^18.0.0 || ^19.0.0
 
   '@babel/runtime@7.28.6':
     resolution: {integrity: sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==}
@@ -578,6 +578,20 @@ packages:
   fraction.js@5.3.4:
     resolution: {integrity: sha512-1X1NTtiJphryn/uLQz3whtY6jK3fTqoE3ohKs0tT+Ujr1W59oopxmoEh7Lu5p6vBaPbgoM0bzveAW4Qi5RyWDQ==}
 
+  framer-motion@12.35.0:
+    resolution: {integrity: sha512-w8hghCMQ4oq10j6aZh3U2yeEQv5K69O/seDI/41PK4HtgkLrcBovUNc0ayBC3UyyU7V1mrY2yLzvYdWJX9pGZQ==}
+    peerDependencies:
+      '@emotion/is-prop-valid': '*'
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -834,6 +848,26 @@ packages:
   micromatch@4.0.8:
     resolution: {integrity: sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==}
     engines: {node: '>=8.6'}
+
+  motion-dom@12.35.0:
+    resolution: {integrity: sha512-FFMLEnIejK/zDABn+vqGVAUN4T0+3fw+cVAY8MMT65yR+j5uMuvWdd4npACWhh94OVWQs79CrBBuwOwGRZAQiA==}
+
+  motion-utils@12.29.2:
+    resolution: {integrity: sha512-G3kc34H2cX2gI63RqU+cZq+zWRRPSsNIOjpdl9TN4AQwC4sgwYPl/Q/Obf/d53nOm569T0fYK+tcoSV50BWx8A==}
+
+  motion@12.35.0:
+    resolution: {integrity: sha512-BQUhNUIGvUcwXCzwmnT1JpjUqab34lIwxHnXUyWRht1WC1vAyp7/4qgMiUXxN3K6hgUhyoR+HNnLeQMwUZjVjw==}
+    peerDependencies:
+      '@emotion/is-prop-valid': '*'
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
@@ -1187,6 +1221,39 @@ packages:
 
 snapshots:
 
+  '@21st-sdk/agent@0.0.5(zod@3.25.76)':
+    dependencies:
+      zod: 3.25.76
+
+  '@21st-sdk/nextjs@0.0.9(@21st-sdk/react@0.1.3(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.137(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(ai@5.0.137(zod@3.25.76))(next@15.5.12(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@21st-sdk/react': 0.1.3(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.137(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@ai-sdk/react': 2.0.139(react@19.2.4)(zod@3.25.76)
+      ai: 5.0.137(zod@3.25.76)
+      next: 15.5.12(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+
+  '@21st-sdk/node@0.0.3': {}
+
+  '@21st-sdk/react@0.1.3(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.137(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@ai-sdk/react': 2.0.139(react@19.2.4)(zod@3.25.76)
+      ai: 5.0.137(zod@3.25.76)
+      clsx: 2.1.1
+      lucide-react: 0.460.0(react@19.2.4)
+      motion: 12.35.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      react-markdown: 10.1.0(@types/react@19.2.14)(react@19.2.4)
+      react-syntax-highlighter: 15.6.6(react@19.2.4)
+      remark-gfm: 4.0.1
+      tailwind-merge: 2.6.1
+    transitivePeerDependencies:
+      - '@emotion/is-prop-valid'
+      - '@types/react'
+      - supports-color
+
   '@ai-sdk/gateway@2.0.43(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 2.0.1
@@ -1216,37 +1283,6 @@ snapshots:
       zod: 3.25.76
 
   '@alloc/quick-lru@5.2.0': {}
-
-  '@an-sdk/agent@0.0.4(zod@3.25.76)':
-    dependencies:
-      zod: 3.25.76
-
-  '@an-sdk/nextjs@0.0.8(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(@an-sdk/react@0.0.6(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.137(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(ai@5.0.137(zod@3.25.76))(next@15.5.12(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
-    dependencies:
-      '@ai-sdk/react': 2.0.139(react@19.2.4)(zod@3.25.76)
-      '@an-sdk/react': 0.0.6(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.137(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      ai: 5.0.137(zod@3.25.76)
-      next: 15.5.12(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
-
-  '@an-sdk/node@0.0.2': {}
-
-  '@an-sdk/react@0.0.6(@ai-sdk/react@2.0.139(react@19.2.4)(zod@3.25.76))(@types/react@19.2.14)(ai@5.0.137(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
-    dependencies:
-      '@ai-sdk/react': 2.0.139(react@19.2.4)(zod@3.25.76)
-      ai: 5.0.137(zod@3.25.76)
-      clsx: 2.1.1
-      lucide-react: 0.460.0(react@19.2.4)
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
-      react-markdown: 10.1.0(@types/react@19.2.14)(react@19.2.4)
-      react-syntax-highlighter: 15.6.6(react@19.2.4)
-      remark-gfm: 4.0.1
-      tailwind-merge: 2.6.1
-    transitivePeerDependencies:
-      - '@types/react'
-      - supports-color
 
   '@babel/runtime@7.28.6': {}
 
@@ -1606,6 +1642,15 @@ snapshots:
   format@0.2.2: {}
 
   fraction.js@5.3.4: {}
+
+  framer-motion@12.35.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      motion-dom: 12.35.0
+      motion-utils: 12.29.2
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
 
   fsevents@2.3.3:
     optional: true
@@ -2077,6 +2122,20 @@ snapshots:
     dependencies:
       braces: 3.0.3
       picomatch: 2.3.1
+
+  motion-dom@12.35.0:
+    dependencies:
+      motion-utils: 12.29.2
+
+  motion-utils@12.29.2: {}
+
+  motion@12.35.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      framer-motion: 12.35.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
 
   ms@2.1.3: {}
 

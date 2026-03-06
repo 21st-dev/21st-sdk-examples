@@ -1,8 +1,8 @@
 "use client"
 
 import { useChat } from "@ai-sdk/react"
-import { AnAgentChat, createAnChat } from "@an-sdk/nextjs"
-import "@an-sdk/react/styles.css"
+import { AnAgentChat, createAnChat } from "@21st-sdk/nextjs"
+import "@21st-sdk/react/styles.css"
 import type { Chat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import { useEffect, useMemo, useRef, useState } from "react"

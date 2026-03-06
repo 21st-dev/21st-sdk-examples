@@ -11,7 +11,7 @@
  * Usage:
  *   npx tsx --env-file=.env scenario-code-runner.ts
  */
-import { AnClient } from "@an-sdk/node"
+import { AnClient } from "@21st-sdk/node"
 
 const AN_API_KEY = process.env.AN_API_KEY!
 const RELAY_URL = process.env.AN_RELAY_URL || "https://relay.an.dev"

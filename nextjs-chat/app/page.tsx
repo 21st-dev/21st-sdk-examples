@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useChat } from "@ai-sdk/react"
-import { createAnChat, AnAgentChat } from "@an-sdk/nextjs"
-import type { CustomToolRendererProps } from "@an-sdk/react"
+import { createAnChat, AnAgentChat } from "@21st-sdk/nextjs"
+import type { CustomToolRendererProps } from "@21st-sdk/react"
 import type { Chat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import type { ThreadItem } from "./types"
 import { ThreadSidebar } from "./components/thread-sidebar"
-import "@an-sdk/react/styles.css"
+import "@21st-sdk/react/styles.css"
 
 function TestToolRenderer({ name, status, output }: CustomToolRendererProps) {
   return (

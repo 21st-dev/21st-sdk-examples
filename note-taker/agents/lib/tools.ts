@@ -1,4 +1,4 @@
-import { tool } from "@an-sdk/agent"
+import { tool } from "@21st-sdk/agent"
 import { z } from "zod"
 import { getConvexConfig } from "./env"
 import { convexQuery, convexMutation, textResult } from "./convex"

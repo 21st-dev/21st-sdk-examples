@@ -1,5 +1,5 @@
 {
-  "name": "an-example-web-scraper",
+  "name": "example-web-scraper",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,10 +8,10 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^2.0.0",
-    "@an-sdk/agent": "^0.0.4",
-    "@an-sdk/nextjs": "^0.0.8",
-    "@an-sdk/node": "^0.0.2",
-    "@an-sdk/react": "^0.0.5",
+    "@21st-sdk/agent": "^0.0.5",
+    "@21st-sdk/nextjs": "^0.0.9",
+    "@21st-sdk/node": "^0.0.3",
+    "@21st-sdk/react": "^0.1.3",
     "ai": "^5.0.0",
     "browser-use-sdk": "^3.1.0",
     "next": "^15.3.0",

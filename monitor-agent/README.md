@@ -1,10 +1,10 @@
 # Status Monitor Agent
 
-Build an autonomous service health monitor that checks Statuspage APIs, detects outages, and sends Slack alerts — built with [An SDK](https://an.dev).
+Build an autonomous service health monitor that checks Statuspage APIs, detects outages, and sends Slack alerts — built with [21st SDK](https://21st.dev/agents).
 
 No database. No cron jobs. No frontend. Just deploy and say `check all`.
 
-> This is a CLI-only agent — there is no frontend. After deploying, you interact with the agent in the An dashboard chat.
+> This is a CLI-only agent — there is no frontend. After deploying, you interact with the agent in the 21st dashboard chat.
 
 ## What you'll build
 
@@ -18,16 +18,16 @@ No database. No cron jobs. No frontend. Just deploy and say `check all`.
 ## Prerequisites
 
 - Node.js 18+
-- An [An](https://an.dev) account with an API key
+- A [21st Agents](https://21st.dev/agents) account with an API key
 - A Slack workspace with an [incoming webhook](https://api.slack.com/messaging/webhooks) (optional, for alerts)
 
 ## Environment variables
 
 | Variable | Where | Description |
 |----------|-------|-------------|
-| `SLACK_WEBHOOK_URL` | An dashboard env vars | Slack incoming webhook URL (optional) |
+| `SLACK_WEBHOOK_URL` | 21st dashboard env vars | Slack incoming webhook URL (optional) |
 
-> No `.env.local` is needed for this example. The agent runs entirely in the An dashboard — environment variables are set there.
+> No `.env.local` is needed for this example. The agent runs entirely in the 21st dashboard — environment variables are set there.
 
 ## Quick start
 
@@ -42,18 +42,18 @@ npm install
 ### 2. Deploy
 
 ```bash
-npx @an-sdk/cli login
-npx @an-sdk/cli deploy
+npx @21st-sdk/cli login
+npx @21st-sdk/cli deploy
 ```
 
-That's it. Open the agent in your [An dashboard](https://an.dev/an/agents) and type `check all`.
+That's it. Open the agent in your [21st dashboard](https://21st.dev/agents) and type `check all`.
 
 ### 3. Add Slack alerts (optional)
 
 1. Go to [Slack API → Apps](https://api.slack.com/apps) → **Create New App** → From scratch
 2. Enable **Incoming Webhooks** → **Add New Webhook to Workspace**
 3. Copy the webhook URL
-4. Set it in the **An dashboard** → your agent → **Environment Variables**:
+4. Set it in the **21st dashboard** → your agent → **Environment Variables**:
 
 ```
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
@@ -68,7 +68,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 The entire agent — model, tools, and system prompt — is defined in a single file. Tools are defined inline:
 
 ```typescript
-import { agent, tool } from "@an-sdk/agent"
+import { agent, tool } from "@21st-sdk/agent"
 import { z } from "zod"
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs"
 
@@ -143,8 +143,8 @@ For each: fetchStatus → readSnapshot → compare → sendSlackMessage (only on
 
 ## How it works
 
-1. **`an deploy`** bundles your TypeScript with esbuild and uploads it to An
-2. An creates an **E2B sandbox** — an isolated environment with Node.js and your code
+1. **`an deploy`** bundles your TypeScript with esbuild and uploads it to 21st
+2. 21st creates an **E2B sandbox** — an isolated environment with Node.js and your code
 3. When you send a message, the **relay runtime** routes it to the sandbox
 4. The agent executes tools in the sandbox, streams responses back via SSE
 5. **Snapshots** are persisted to the sandbox filesystem between runs
@@ -200,14 +200,14 @@ monitor-agent/
 ## Commands
 
 ```bash
-npm run deploy      # Bundle and deploy to An
-npm run login       # Authenticate with your An API key
+npm run deploy      # Bundle and deploy to 21st
+npm run login       # Authenticate with your 21st API key
 npm run typecheck   # Run TypeScript type checking
 ```
 
 ## Next steps
 
 - Add a service — edit `skills/monitoring-strategy.md`
-- Learn more about skills — see [Skills](https://an.dev/an/docs/skills)
-- [An Documentation](https://an.dev/an/docs)
-- [An Dashboard](https://an.dev/an/agents)
+- Learn more about skills — see [Skills](https://21st.dev/agents/docs/skills)
+- [21st Docs](https://21st.dev/agents/docs)
+- [21st Dashboard](https://21st.dev/agents)

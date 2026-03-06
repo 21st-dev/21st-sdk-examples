@@ -1,4 +1,4 @@
-import { agent, Sandbox } from "@an-sdk/agent"
+import { agent, Sandbox } from "@21st-sdk/agent"
 
 export default agent({
   model: "claude-sonnet-4-6",

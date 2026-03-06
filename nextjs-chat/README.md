@@ -1,4 +1,4 @@
-# An SDK — Next.js Chat Example
+# 21st SDK — Next.js Chat Example
 
 Deploy a Claude Code agent with a custom web search tool and connect it to a streaming chat UI.
 
@@ -14,7 +14,7 @@ A full-stack Next.js app with a streaming chat UI powered by a deployed Claude C
 ## Prerequisites
 
 - Node.js 18+
-- An [An](https://an.dev) account with an API key
+- A [21st Agents](https://21st.dev/agents) account with an API key
 
 ## Environment variables
 
@@ -35,11 +35,11 @@ npm install
 ### 2. Deploy the agent
 
 ```bash
-npx @an-sdk/cli login    # paste your an_sk_ API key
-npx @an-sdk/cli deploy   # deploys agents/ to An cloud
+npx @21st-sdk/cli login    # paste your an_sk_ API key
+npx @21st-sdk/cli deploy   # deploys agents/ to 21st cloud
 ```
 
-The CLI bundles everything in `agents/` and deploys it to An cloud. Your agent gets a unique ID you can reference from the client.
+The CLI bundles everything in `agents/` and deploys it to 21st cloud. Your agent gets a unique ID you can reference from the client.
 
 ### 3. Configure and run
 
@@ -58,7 +58,7 @@ Open [http://localhost:3000](http://localhost:3000).
 The agent uses Claude Sonnet with a custom `search_docs` tool that hits the DuckDuckGo instant-answer API:
 
 ```typescript
-import { agent, tool } from "@an-sdk/agent"
+import { agent, tool } from "@21st-sdk/agent"
 import { z } from "zod"
 
 export default agent({
@@ -105,7 +105,7 @@ export default agent({
 Exchanges your server-side `an_sk_` key for a short-lived JWT. The client never sees your API key:
 
 ```typescript
-import { createAnTokenHandler } from "@an-sdk/nextjs/server"
+import { createAnTokenHandler } from "@21st-sdk/nextjs/server"
 
 export const POST = createAnTokenHandler({
   apiKey: process.env.AN_API_KEY!,
@@ -148,6 +148,6 @@ nextjs-chat/
 
 ## Next steps
 
-- Add more tools to the agent — see [Build & Deploy](https://an.dev/an/docs/agent-projects)
-- Customize the chat theme — see [Themes](https://an.dev/an/docs/customization)
-- Add behavior rules with skills — see [Skills](https://an.dev/an/docs/skills)
+- Add more tools to the agent — see [Build & Deploy](https://21st.dev/agents/docs/agent-projects)
+- Customize the chat theme — see [Themes](https://21st.dev/agents/docs/customization)
+- Add behavior rules with skills — see [Skills](https://21st.dev/agents/docs/skills)

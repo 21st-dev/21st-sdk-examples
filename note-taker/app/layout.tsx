@@ -5,8 +5,8 @@ import "./globals.css"
 export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
-  title: "AN Note Taker Agent",
-  description: "Hackathon-ready Next.js + AN + Convex note-taking agent template",
+  title: "21st Note Taker Agent",
+  description: "Hackathon-ready Next.js + 21st SDK + Convex note-taking agent template",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

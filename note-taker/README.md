@@ -1,6 +1,6 @@
 # Note Taker Agent
 
-Build an AI notebook assistant that saves, searches, updates, and deletes notes with real-time sync via Convex — built with [An SDK](https://an.dev) and [Convex](https://convex.dev).
+Build an AI notebook assistant that saves, searches, updates, and deletes notes with real-time sync via Convex — built with [21st SDK](https://21st.dev/agents) and [Convex](https://convex.dev).
 
 Chat naturally. Notes persist across sessions in Convex.
 
@@ -18,7 +18,7 @@ A three-panel Next.js app — thread sidebar, chat, and live notes panel — pow
 ## Prerequisites
 
 - Node.js 18+
-- An [An](https://an.dev) account with an API key
+- A [21st Agents](https://21st.dev/agents) account with an API key
 - A [Convex](https://www.convex.dev) account (free tier works)
 
 ## Environment variables
@@ -27,7 +27,7 @@ A three-panel Next.js app — thread sidebar, chat, and live notes panel — pow
 |----------|-------|-------------|
 | `AN_API_KEY` | `.env.local` | Server-side API key (`an_sk_`) for token exchange |
 | `NEXT_PUBLIC_CONVEX_URL` | `.env.local` | Convex deployment URL for the React client |
-| `CONVEX_URL` | An dashboard env vars | Same Convex URL — set in An dashboard so the agent sandbox can reach Convex |
+| `CONVEX_URL` | 21st dashboard env vars | Same Convex URL — set in 21st dashboard so the agent sandbox can reach Convex |
 
 ## Quick start
 
@@ -49,11 +49,11 @@ npx convex dev
 ### 3. Deploy the agent
 
 ```bash
-npx @an-sdk/cli login
-npx @an-sdk/cli deploy
+npx @21st-sdk/cli login
+npx @21st-sdk/cli deploy
 ```
 
-After deploying, go to the An dashboard and add `CONVEX_URL` to your agent's environment variables. This lets the agent sandbox connect to your Convex database.
+After deploying, go to the 21st dashboard and add `CONVEX_URL` to your agent's environment variables. This lets the agent sandbox connect to your Convex database.
 
 ### 4. Configure and run
 
@@ -72,7 +72,7 @@ Open [http://localhost:3000](http://localhost:3000).
 Uses Claude Sonnet with 6 CRUD tools. The system prompt instructs the agent to always search notes before claiming it has no information:
 
 ```typescript
-import { agent } from "@an-sdk/agent"
+import { agent } from "@21st-sdk/agent"
 import { noteTools } from "./lib/tools"
 
 export default agent({
@@ -193,7 +193,7 @@ npm run typecheck    # TypeScript type checking
 
 ## Next steps
 
-- Learn more about skills — see [Skills](https://an.dev/an/docs/skills)
-- Learn about agent configuration — see [Build & Deploy](https://an.dev/an/docs/agent-projects)
-- [An Documentation](https://an.dev/an/docs)
+- Learn more about skills — see [Skills](https://21st.dev/agents/docs/skills)
+- Learn about agent configuration — see [Build & Deploy](https://21st.dev/agents/docs/agent-projects)
+- [21st Docs](https://21st.dev/agents/docs)
 - [Convex Documentation](https://docs.convex.dev)

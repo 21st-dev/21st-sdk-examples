@@ -1,4 +1,4 @@
-import { AnClient } from "@an-sdk/node"
+import { AnClient } from "@21st-sdk/node"
 
 const AN_API_KEY = process.env.AN_API_KEY
 const REPO_URL = process.env.REPO_URL || "https://github.com/anthropics/anthropic-cookbook.git"

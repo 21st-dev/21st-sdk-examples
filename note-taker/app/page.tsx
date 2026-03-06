@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useChat } from "@ai-sdk/react"
-import { createAnChat, AnAgentChat } from "@an-sdk/nextjs"
+import { createAnChat, AnAgentChat } from "@21st-sdk/nextjs"
 import type { Chat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import type { ThreadItem } from "./types"
@@ -16,7 +16,7 @@ import {
   DeleteNoteRenderer,
   TagFilterRenderer,
 } from "./components/note-tool-renderers"
-import "@an-sdk/react/styles.css"
+import "@21st-sdk/react/styles.css"
 
 function ChatPanel({ chat }: { chat: Chat<UIMessage> }) {
   const { messages, sendMessage, status, stop, error } = useChat({ chat })

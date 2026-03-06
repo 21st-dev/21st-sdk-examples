@@ -1,6 +1,6 @@
 # Sandbox Management Example
 
-Demonstrates AN agent sandbox configuration and runtime operations. An agent with `gh` CLI installed reviews a cloned repository — all orchestrated from a Node script.
+Demonstrates 21st agent sandbox configuration and runtime operations. An agent with `gh` CLI installed reviews a cloned repository — all orchestrated from a Node script.
 
 ## What it shows
 

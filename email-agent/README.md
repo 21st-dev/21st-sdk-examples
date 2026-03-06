@@ -1,4 +1,4 @@
-# An SDK — Email Agent
+# 21st SDK — Email Agent
 
 Build an email operations copilot that sends intros, reads inbox, and auto-replies using AgentMail.
 
@@ -13,7 +13,7 @@ A Next.js app with a chat UI and quick-prompt panel that lets you manage email w
 ## Prerequisites
 
 - Node.js 18+
-- An [An](https://an.dev) account with an API key
+- A [21st Agents](https://21st.dev/agents) account with an API key
 - An [AgentMail](https://agentmail.to) account with an API key and inbox ID
 
 ## Environment variables
@@ -21,10 +21,10 @@ A Next.js app with a chat UI and quick-prompt panel that lets you manage email w
 | Variable | Where | Description |
 |----------|-------|-------------|
 | `AN_API_KEY` | `.env.local` | Server-side API key (`an_sk_`) for token exchange |
-| `AGENTMAIL_API_KEY` | An dashboard env vars | AgentMail API key for sending and reading emails |
-| `AGENTMAIL_INBOX_ID` | An dashboard env vars | Your AgentMail sender inbox ID |
+| `AGENTMAIL_API_KEY` | 21st dashboard env vars | AgentMail API key for sending and reading emails |
+| `AGENTMAIL_INBOX_ID` | 21st dashboard env vars | Your AgentMail sender inbox ID |
 
-> `AGENTMAIL_API_KEY` and `AGENTMAIL_INBOX_ID` are set in the An dashboard environment variables, not in `.env.local`. They are injected into the agent sandbox at runtime.
+> `AGENTMAIL_API_KEY` and `AGENTMAIL_INBOX_ID` are set in the 21st dashboard environment variables, not in `.env.local`. They are injected into the agent sandbox at runtime.
 
 ## Quick start
 
@@ -39,11 +39,11 @@ npm install
 ### 2. Deploy the agent
 
 ```bash
-npx @an-sdk/cli login
-npx @an-sdk/cli deploy
+npx @21st-sdk/cli login
+npx @21st-sdk/cli deploy
 ```
 
-After deploying, go to the An dashboard and set `AGENTMAIL_API_KEY` and `AGENTMAIL_INBOX_ID` in the agent's environment variables section.
+After deploying, go to the 21st dashboard and set `AGENTMAIL_API_KEY` and `AGENTMAIL_INBOX_ID` in the agent's environment variables section.
 
 ### 3. Configure and run
 
@@ -62,7 +62,7 @@ Open [http://localhost:3000](http://localhost:3000).
 Imports tools from a separate `tools.ts` file and sets a system prompt focused on three email workflows:
 
 ```typescript
-import { agent } from "@an-sdk/agent"
+import { agent } from "@21st-sdk/agent"
 import { emailAgentTools } from "./tools"
 
 export default agent({
@@ -89,7 +89,7 @@ Rules:
 Three email operations, each validated with Zod and delegated to the AgentMail client:
 
 ```typescript
-import { tool } from "@an-sdk/agent"
+import { tool } from "@21st-sdk/agent"
 import { z } from "zod"
 import { getAgentMailConfig } from "./env"
 import { readMessages, replyToMessage, sendMessage } from "./agentmail"
@@ -198,5 +198,5 @@ npm run typecheck    # TypeScript type checking
 ## Next steps
 
 - Add more tools (e.g., schedule follow-ups, manage contacts)
-- Add skills for email tone and templates — see [Skills](https://an.dev/an/docs/skills)
-- Learn about agent configuration — see [Build & Deploy](https://an.dev/an/docs/agent-projects)
+- Add skills for email tone and templates — see [Skills](https://21st.dev/agents/docs/skills)
+- Learn about agent configuration — see [Build & Deploy](https://21st.dev/agents/docs/agent-projects)

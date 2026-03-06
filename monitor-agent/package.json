@@ -12,11 +12,11 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@an-sdk/agent": "^0.0.3",
+    "@21st-sdk/agent": "^0.0.5",
     "zod": "^3.24"
   },
   "devDependencies": {
-    "@an-sdk/cli": "^0.0.8",
+    "@21st-sdk/cli": "^0.0.12",
     "@types/node": "^25.3.2"
   }
 }

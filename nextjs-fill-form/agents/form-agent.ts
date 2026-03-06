@@ -1,4 +1,4 @@
-import { agent, tool } from "@an-sdk/agent"
+import { agent, tool } from "@21st-sdk/agent"
 import { z } from "zod"
 
 const profilePatchSchema = z

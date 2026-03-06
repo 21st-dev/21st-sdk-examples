@@ -1,4 +1,4 @@
-import { agent } from "@an-sdk/agent"
+import { agent } from "@21st-sdk/agent"
 import { noteTools } from "./lib/tools"
 
 export default agent({

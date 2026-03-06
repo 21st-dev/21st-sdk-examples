@@ -1,4 +1,4 @@
-import { AnClient } from "@an-sdk/node"
+import { AnClient } from "@21st-sdk/node"
 import { NextRequest, NextResponse } from "next/server"
 
 const an = new AnClient({ apiKey: process.env.AN_API_KEY! })
