@@ -25,7 +25,7 @@ A three-panel Next.js app — thread sidebar, chat, and live notes panel — pow
 
 | Variable | Where | Description |
 |----------|-------|-------------|
-| `AN_API_KEY` | `.env.local` | Server-side API key (`an_sk_`) for token exchange |
+| `API_KEY_21ST` | `.env.local` | Server-side API key (`an_sk_`) for token exchange |
 | `NEXT_PUBLIC_CONVEX_URL` | `.env.local` | Convex deployment URL for the React client |
 | `CONVEX_URL` | 21st dashboard env vars | Same Convex URL — set in 21st dashboard so the agent sandbox can reach Convex |
 
@@ -59,7 +59,7 @@ After deploying, go to the 21st dashboard and add `CONVEX_URL` to your agent's e
 
 ```bash
 cp .env.example .env.local
-# Add AN_API_KEY and NEXT_PUBLIC_CONVEX_URL to .env.local
+# Add API_KEY_21ST and NEXT_PUBLIC_CONVEX_URL to .env.local
 npm run dev
 ```
 
@@ -186,8 +186,8 @@ npm run dev          # Run Next.js + Convex dev servers
 npm run dev:next     # Run Next.js only
 npm run dev:convex   # Run Convex only
 npm run build        # Production build
-npm run login        # Authenticate with An
-npm run deploy       # Deploy agent to An
+npm run login        # Authenticate with the platform
+npm run deploy       # Deploy the agent
 npm run typecheck    # TypeScript type checking
 ```
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { AnAgentChat, createAnChat } from "@21st-sdk/nextjs"
+import { AgentChat, createAgentChat } from "@21st-sdk/nextjs"
 import "@21st-sdk/react/styles.css"
 import type { Chat } from "@ai-sdk/react"
 import { useChat } from "@ai-sdk/react"
@@ -19,7 +19,7 @@ function ChatPanel({ chat }: { chat: Chat<UIMessage> }) {
   const { messages, sendMessage, status, stop, error } = useChat({ chat })
 
   return (
-    <AnAgentChat
+    <AgentChat
       messages={messages}
       onSend={(msg) => sendMessage({ text: msg.content })}
       status={status}
@@ -42,9 +42,9 @@ export default function Home() {
 
   const chat = useMemo(() => {
     if (!sandboxId || !activeThreadId) return null
-    return createAnChat({
+    return createAgentChat({
       agent: AGENT_SLUG,
-      tokenUrl: "/api/an/token",
+      tokenUrl: "/api/agent/token",
       sandboxId,
       threadId: activeThreadId,
     })
@@ -57,25 +57,25 @@ export default function Home() {
     async function init() {
       try {
         async function createFreshSandbox() {
-          const sbRes = await fetch("/api/an/sandbox", { method: "POST" })
+          const sbRes = await fetch("/api/agent/sandbox", { method: "POST" })
           if (!sbRes.ok) throw new Error(`Failed to create sandbox: ${sbRes.status}`)
           const data = await sbRes.json()
           const freshSandboxId = data.sandboxId as string
-          localStorage.setItem("an_sandbox_id", freshSandboxId)
+          localStorage.setItem("agent_sandbox_id", freshSandboxId)
           return freshSandboxId
         }
 
-        let sbId = localStorage.getItem("an_sandbox_id")
+        let sbId = localStorage.getItem("agent_sandbox_id")
         if (!sbId) {
           sbId = await createFreshSandbox()
         }
 
-        let threadsRes = await fetch(`/api/an/threads?sandboxId=${sbId}`)
+        let threadsRes = await fetch(`/api/agent/threads?sandboxId=${sbId}`)
         if (!threadsRes.ok) {
           // Common recovery path after redeploys or stale sandbox/thread ids.
-          localStorage.removeItem("an_thread_id")
+          localStorage.removeItem("agent_thread_id")
           sbId = await createFreshSandbox()
-          threadsRes = await fetch(`/api/an/threads?sandboxId=${sbId}`)
+          threadsRes = await fetch(`/api/agent/threads?sandboxId=${sbId}`)
           if (!threadsRes.ok) {
             throw new Error(`Failed to fetch threads: ${threadsRes.status}`)
           }
@@ -83,7 +83,7 @@ export default function Home() {
 
         setSandboxId(sbId)
         const existingThreads: ThreadItem[] = await threadsRes.json()
-        const savedThreadId = localStorage.getItem("an_thread_id")
+        const savedThreadId = localStorage.getItem("agent_thread_id")
 
         if (existingThreads.length > 0) {
           setThreads(existingThreads)
@@ -91,9 +91,9 @@ export default function Home() {
             ? savedThreadId!
             : existingThreads[0]!.id
           setActiveThreadId(selected)
-          localStorage.setItem("an_thread_id", selected)
+          localStorage.setItem("agent_thread_id", selected)
         } else {
-          const newRes = await fetch("/api/an/threads", {
+          const newRes = await fetch("/api/agent/threads", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ sandboxId: sbId, name: "Scraping Thread 1" }),
@@ -102,7 +102,7 @@ export default function Home() {
           const newThread: ThreadItem = await newRes.json()
           setThreads([newThread])
           setActiveThreadId(newThread.id)
-          localStorage.setItem("an_thread_id", newThread.id)
+          localStorage.setItem("agent_thread_id", newThread.id)
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to initialize")
@@ -116,7 +116,7 @@ export default function Home() {
     if (!sandboxId) return
     const name = `Scraping Thread ${threads.length + 1}`
     try {
-      const res = await fetch("/api/an/threads", {
+      const res = await fetch("/api/agent/threads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sandboxId, name }),
@@ -125,7 +125,7 @@ export default function Home() {
       const thread: ThreadItem = await res.json()
       setThreads((prev) => [thread, ...prev])
       setActiveThreadId(thread.id)
-      localStorage.setItem("an_thread_id", thread.id)
+      localStorage.setItem("agent_thread_id", thread.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create thread")
     }
@@ -133,7 +133,7 @@ export default function Home() {
 
   const handleSelectThread = useCallback((threadId: string) => {
     setActiveThreadId(threadId)
-    localStorage.setItem("an_thread_id", threadId)
+    localStorage.setItem("agent_thread_id", threadId)
   }, [])
 
   if (error) {

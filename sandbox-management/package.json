@@ -6,8 +6,8 @@
     "run": "tsx run.ts"
   },
   "dependencies": {
-    "@21st-sdk/agent": "^0.0.5",
-    "@21st-sdk/node": "^0.0.3",
+    "@21st-sdk/agent": "0.0.6",
+    "@21st-sdk/node": "0.0.4",
     "zod": "^3.24.0"
   },
   "devDependencies": {

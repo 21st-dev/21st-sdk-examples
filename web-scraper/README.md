@@ -14,7 +14,7 @@ web-scraper/
 ├── agents/
 │   └── web-scraper.ts         # Agent definition (deploy this)
 ├── app/
-│   ├── api/an/
+│   ├── api/agent/
 │   │   ├── sandbox/route.ts   # Creates/caches agent sandboxes
 │   │   ├── threads/route.ts   # Creates/lists chat threads
 │   │   └── token/route.ts     # Token handler (server-side)
@@ -37,7 +37,7 @@ cp .env.example .env.local
 ```
 
 Set:
-- `AN_API_KEY`
+- `API_KEY_21ST`
 - `BROWSER_USE_API_KEY`
 - optional `BROWSER_USE_BASE_URL`
 
@@ -45,8 +45,8 @@ Set:
 
 ```bash
 npm install
-npx an login
-npx an deploy
+npx @21st-sdk/cli login
+npx @21st-sdk/cli deploy
 ```
 
 Deploy `agents/web-scraper.ts` as slug `web-scraper` (or update slug references if you choose a different name).

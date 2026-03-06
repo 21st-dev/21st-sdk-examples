@@ -20,7 +20,7 @@ A Next.js app with a tabbed form panel on the left and an agent chat panel on th
 
 | Variable | Where | Description |
 |----------|-------|-------------|
-| `AN_API_KEY` | `.env.local` | Server-side API key (`an_sk_`) for token exchange |
+| `API_KEY_21ST` | `.env.local` | Server-side API key (`an_sk_`) for token exchange |
 
 ## Quick start
 
@@ -43,7 +43,7 @@ npx @21st-sdk/cli deploy
 
 ```bash
 cp .env.example .env.local
-# Add AN_API_KEY to .env.local
+# Add API_KEY_21ST to .env.local
 npm run dev
 ```
 
@@ -155,7 +155,7 @@ nextjs-fill-form/
 ├── agents/
 │   └── form-agent.ts          # Agent with fill_form tool
 ├── app/
-│   ├── api/an/token/route.ts  # Token handler (server-side)
+│   ├── api/agent/token/route.ts  # Token handler (server-side)
 │   ├── page.tsx               # Tabs + forms + chat integration
 │   ├── layout.tsx
 │   └── globals.css

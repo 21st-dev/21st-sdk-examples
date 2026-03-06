@@ -20,7 +20,7 @@ A full-stack Next.js app with a streaming chat UI powered by a deployed Claude C
 
 | Variable | Where | Description |
 |----------|-------|-------------|
-| `AN_API_KEY` | `.env.local` | Server-side API key (`an_sk_`) for token exchange |
+| `API_KEY_21ST` | `.env.local` | Server-side API key (`an_sk_`) for token exchange |
 
 ## Quick start
 
@@ -45,7 +45,7 @@ The CLI bundles everything in `agents/` and deploys it to 21st cloud. Your agent
 
 ```bash
 cp .env.example .env.local
-# Add your AN_API_KEY to .env.local
+# Add your API_KEY_21ST to .env.local
 npm run dev
 ```
 
@@ -100,24 +100,24 @@ export default agent({
 })
 ```
 
-### Token handler (`app/api/an/token/route.ts`)
+### Token handler (`app/api/agent/token/route.ts`)
 
 Exchanges your server-side `an_sk_` key for a short-lived JWT. The client never sees your API key:
 
 ```typescript
-import { createAnTokenHandler } from "@21st-sdk/nextjs/server"
+import { createTokenHandler } from "@21st-sdk/nextjs/server"
 
-export const POST = createAnTokenHandler({
-  apiKey: process.env.AN_API_KEY!,
+export const POST = createTokenHandler({
+  apiKey: process.env.API_KEY_21ST!,
 })
 ```
 
 ### Chat UI (`app/page.tsx`)
 
-Uses `createAnChat()` to create a chat session, then renders the conversation with `<AnAgentChat>`:
+Uses `createAgentChat()` to create a chat session, then renders the conversation with `<AgentChat>`:
 
-- **Token exchange** — the Next.js API route at `/api/an/token` exchanges your key for a JWT
-- **Chat session** — `createAnChat()` connects to the deployed agent via the relay
+- **Token exchange** — the Next.js API route at `/api/agent/token` exchanges your key for a JWT
+- **Chat session** — `createAgentChat()` connects to the deployed agent via the relay
 - **Streaming** — responses stream in real time, tool calls render live as they execute
 
 ## Try it out
@@ -133,7 +133,7 @@ nextjs-chat/
 ├── agents/
 │   └── my-agent.ts            # Agent definition (deploy this)
 ├── app/
-│   ├── api/an/
+│   ├── api/agent/
 │   │   ├── sandbox/route.ts   # Creates/caches agent sandboxes
 │   │   ├── threads/route.ts   # Creates/lists chat threads
 │   │   └── token/route.ts     # Token handler (server-side)

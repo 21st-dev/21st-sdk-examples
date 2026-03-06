@@ -20,7 +20,7 @@ A Next.js app with a chat UI and quick-prompt panel that lets you manage email w
 
 | Variable | Where | Description |
 |----------|-------|-------------|
-| `AN_API_KEY` | `.env.local` | Server-side API key (`an_sk_`) for token exchange |
+| `API_KEY_21ST` | `.env.local` | Server-side API key (`an_sk_`) for token exchange |
 | `AGENTMAIL_API_KEY` | 21st dashboard env vars | AgentMail API key for sending and reading emails |
 | `AGENTMAIL_INBOX_ID` | 21st dashboard env vars | Your AgentMail sender inbox ID |
 
@@ -49,7 +49,7 @@ After deploying, go to the 21st dashboard and set `AGENTMAIL_API_KEY` and `AGENT
 
 ```bash
 cp .env.example .env.local
-# Add your AN_API_KEY to .env.local
+# Add your API_KEY_21ST to .env.local
 npm run dev
 ```
 
@@ -177,7 +177,7 @@ email-agent/
 │   ├── env.ts                  # Env loading (local + sandbox) and validation
 │   └── agentmail.ts            # AgentMail API client helpers
 ├── app/
-│   ├── api/an/token/route.ts   # Server token exchange (AN_API_KEY stays server-side)
+│   ├── api/agent/token/route.ts   # Server token exchange (API_KEY_21ST stays server-side)
 │   ├── page.tsx                # Chat UI + quick prompts panel
 │   ├── layout.tsx
 │   └── globals.css
@@ -190,8 +190,8 @@ email-agent/
 ```bash
 npm run dev          # Run dev server
 npm run build        # Production build
-npm run login        # Authenticate with An
-npm run deploy       # Deploy agent to An
+npm run login        # Authenticate with the platform
+npm run deploy       # Deploy the agent
 npm run typecheck    # TypeScript type checking
 ```
 

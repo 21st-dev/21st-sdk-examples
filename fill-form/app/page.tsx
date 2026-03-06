@@ -1,7 +1,7 @@
 "use client"
 
 import { useChat } from "@ai-sdk/react"
-import { AnAgentChat, createAnChat } from "@21st-sdk/nextjs"
+import { AgentChat, createAgentChat } from "@21st-sdk/nextjs"
 import "@21st-sdk/react/styles.css"
 import type { Chat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
@@ -521,7 +521,7 @@ function FormAgent({ chat }: { chat: Chat<UIMessage> }) {
       </section>
 
       <section className="h-screen min-h-0">
-        <AnAgentChat
+        <AgentChat
           messages={displayMessages}
           onSend={(msg) => {
             // Prefix is sent only to the model context and stripped from the UI render.
@@ -547,9 +547,9 @@ export default function Home() {
 
   const chat = useMemo(() => {
     if (!sandboxId || !threadId) return null
-    return createAnChat({
+    return createAgentChat({
       agent: "form-agent",
-      tokenUrl: "/api/an/token",
+      tokenUrl: "/api/agent/token",
       sandboxId,
       threadId,
     })
@@ -561,22 +561,22 @@ export default function Home() {
 
     async function init() {
       try {
-        let sbId = localStorage.getItem("an_sandbox_id")
+        let sbId = localStorage.getItem("agent_sandbox_id")
 
         if (!sbId) {
-          const sbRes = await fetch("/api/an/sandbox", { method: "POST" })
+          const sbRes = await fetch("/api/agent/sandbox", { method: "POST" })
           if (!sbRes.ok) throw new Error(`Failed to create sandbox: ${sbRes.status}`)
           const data = await sbRes.json()
           sbId = data.sandboxId
-          localStorage.setItem("an_sandbox_id", sbId!)
+          localStorage.setItem("agent_sandbox_id", sbId!)
         }
 
         setSandboxId(sbId)
 
-        let thId = localStorage.getItem("an_thread_id")
+        let thId = localStorage.getItem("agent_thread_id")
 
         if (!thId) {
-          const thRes = await fetch("/api/an/threads", {
+          const thRes = await fetch("/api/agent/threads", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ sandboxId: sbId, name: "Chat" }),
@@ -584,7 +584,7 @@ export default function Home() {
           if (!thRes.ok) throw new Error(`Failed to create thread: ${thRes.status}`)
           const data = await thRes.json()
           thId = data.id
-          localStorage.setItem("an_thread_id", thId!)
+          localStorage.setItem("agent_thread_id", thId!)
         }
 
         setThreadId(thId)
