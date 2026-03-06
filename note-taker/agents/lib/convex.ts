@@ -21,7 +21,7 @@ export async function convexQuery(
   })
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`Convex query ${fnName} failed: ${err}`)
+    throw new Error(`Convex query ${fnName} failed (${res.status}): ${err || "<empty response>"}`)
   }
   const data = await res.json()
   return data.value
@@ -40,7 +40,7 @@ export async function convexMutation(
   })
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`Convex mutation ${fnName} failed: ${err}`)
+    throw new Error(`Convex mutation ${fnName} failed (${res.status}): ${err || "<empty response>"}`)
   }
   const data = await res.json()
   return data.value

@@ -1,9 +1,17 @@
 "use client"
 
-import { useQuery } from "convex/react"
+import { useState } from "react"
+import { useMutation, useQuery } from "convex/react"
+import { makeFunctionReference } from "convex/server"
 import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 
 const hasConvex = !!process.env.NEXT_PUBLIC_CONVEX_URL
+const removeAllNotesMutation = makeFunctionReference<
+  "mutation",
+  Record<string, never>,
+  { removed: number }
+>("notes:removeAll")
 
 function formatDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString("en-US", {
@@ -16,6 +24,10 @@ function formatDate(timestamp: number): string {
 
 function NotesList() {
   const notes = useQuery(api.notes.list)
+  const removeNote = useMutation(api.notes.remove)
+  const removeAllNotes = useMutation(removeAllNotesMutation)
+  const [removingId, setRemovingId] = useState<Id<"notes"> | null>(null)
+  const [isRemovingAll, setIsRemovingAll] = useState(false)
 
   if (notes === undefined) {
     return (
@@ -36,20 +48,60 @@ function NotesList() {
     )
   }
 
+  async function handleRemoveNote(id: Id<"notes">) {
+    try {
+      setRemovingId(id)
+      await removeNote({ id })
+    } finally {
+      setRemovingId(null)
+    }
+  }
+
+  async function handleRemoveAll() {
+    const confirmed = window.confirm("Remove all saved notes?")
+    if (!confirmed) return
+
+    try {
+      setIsRemovingAll(true)
+      await removeAllNotes({})
+    } finally {
+      setIsRemovingAll(false)
+    }
+  }
+
   return (
     <>
-      <p className="text-xs text-neutral-500 mt-1 px-4">
-        {notes.length} note{notes.length !== 1 ? "s" : ""}
-      </p>
-      <div className="p-2 space-y-2">
+      <div className="pt-3 flex items-center justify-between px-4">
+        <p className="text-xs text-neutral-500">
+          {notes.length} note{notes.length !== 1 ? "s" : ""}
+        </p>
+        <button
+          onClick={handleRemoveAll}
+          disabled={isRemovingAll}
+          className="text-xs text-neutral-500 hover:text-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Remove all
+        </button>
+      </div>
+      <div className="px-2 pt-2 pb-2 space-y-2">
         {notes.map((note) => (
           <div
             key={note._id}
             className="p-3 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-700 transition-colors"
           >
-            <h3 className="text-sm font-medium text-neutral-200 truncate">
-              {note.title}
-            </h3>
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-sm font-medium text-neutral-200 truncate">
+                {note.title}
+              </h3>
+              <button
+                onClick={() => handleRemoveNote(note._id)}
+                disabled={removingId === note._id || isRemovingAll}
+                className="shrink-0 text-base leading-none text-neutral-500 hover:text-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label={`Remove ${note.title}`}
+              >
+                {removingId === note._id ? "…" : "×"}
+              </button>
+            </div>
             <p className="text-xs text-neutral-400 mt-1 line-clamp-2">
               {note.content}
             </p>
@@ -78,12 +130,6 @@ function NotesList() {
 export function NotesSidebarContent() {
   return (
     <div className="flex h-full flex-col bg-neutral-950">
-      <div className="p-4 border-b border-neutral-800">
-        <h2 className="text-sm font-semibold text-neutral-300 uppercase tracking-wider">
-          Saved Notes
-        </h2>
-      </div>
-
       <div className="flex-1 overflow-y-auto">
         {hasConvex ? (
           <NotesList />

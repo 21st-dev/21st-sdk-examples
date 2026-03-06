@@ -17,6 +17,9 @@ import {
 } from "./components/note-tool-renderers"
 import "@21st-sdk/react/styles.css"
 
+const SANDBOX_STORAGE_KEY = "agent_sandbox_id_v2"
+const THREAD_STORAGE_KEY = "agent_thread_id_v2"
+
 function getMessagesStorageKey(sandboxId: string, threadId: string) {
   return `note-taker:messages:${sandboxId}:${threadId}`
 }
@@ -95,7 +98,7 @@ export default function Home() {
   const [sandboxId, setSandboxId] = useState<string | null>(null)
   const [threads, setThreads] = useState<ThreadItem[]>([])
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
-  const [sidebarView, setSidebarView] = useState<"threads" | "notes">("threads")
+  const [sidebarView, setSidebarView] = useState<"threads" | "notes">("notes")
   const [error, setError] = useState<string | null>(null)
   const initRef = useRef(false)
 
@@ -105,14 +108,14 @@ export default function Home() {
 
     async function init() {
       try {
-        let sbId = localStorage.getItem("agent_sandbox_id")
+        let sbId = localStorage.getItem(SANDBOX_STORAGE_KEY)
 
         if (!sbId) {
           const sbRes = await fetch("/api/agent/sandbox", { method: "POST" })
           if (!sbRes.ok) throw new Error(`Failed to create sandbox: ${sbRes.status}`)
           const data = await sbRes.json()
           sbId = data.sandboxId
-          localStorage.setItem("agent_sandbox_id", sbId!)
+          localStorage.setItem(SANDBOX_STORAGE_KEY, sbId!)
         }
 
         setSandboxId(sbId)
@@ -121,7 +124,7 @@ export default function Home() {
         if (!threadsRes.ok) throw new Error(`Failed to fetch threads: ${threadsRes.status}`)
         const existingThreads: ThreadItem[] = await threadsRes.json()
 
-        const savedThreadId = localStorage.getItem("agent_thread_id")
+        const savedThreadId = localStorage.getItem(THREAD_STORAGE_KEY)
 
         if (existingThreads.length > 0) {
           setThreads(existingThreads)
@@ -129,7 +132,7 @@ export default function Home() {
             ? savedThreadId!
             : existingThreads[0]!.id
           setActiveThreadId(threadId)
-          localStorage.setItem("agent_thread_id", threadId)
+          localStorage.setItem(THREAD_STORAGE_KEY, threadId)
         } else {
           const newRes = await fetch("/api/agent/threads", {
             method: "POST",
@@ -140,7 +143,7 @@ export default function Home() {
           const newThread: ThreadItem = await newRes.json()
           setThreads([newThread])
           setActiveThreadId(newThread.id)
-          localStorage.setItem("agent_thread_id", newThread.id)
+          localStorage.setItem(THREAD_STORAGE_KEY, newThread.id)
         }
       } catch (err) {
         console.error("[note-taker] Init failed:", err)
@@ -164,7 +167,7 @@ export default function Home() {
       const thread: ThreadItem = await res.json()
       setThreads((prev) => [thread, ...prev])
       setActiveThreadId(thread.id)
-      localStorage.setItem("agent_thread_id", thread.id)
+      localStorage.setItem(THREAD_STORAGE_KEY, thread.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create thread")
     }
@@ -172,7 +175,7 @@ export default function Home() {
 
   const handleSelectThread = useCallback((threadId: string) => {
     setActiveThreadId(threadId)
-    localStorage.setItem("agent_thread_id", threadId)
+    localStorage.setItem(THREAD_STORAGE_KEY, threadId)
   }, [])
 
   if (error) {

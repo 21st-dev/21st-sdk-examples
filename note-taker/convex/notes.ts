@@ -91,3 +91,12 @@ export const remove = mutation({
     await ctx.db.delete(id)
   },
 })
+
+export const removeAll = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const notes = await ctx.db.query("notes").collect()
+    await Promise.all(notes.map((note) => ctx.db.delete(note._id)))
+    return { removed: notes.length }
+  },
+})

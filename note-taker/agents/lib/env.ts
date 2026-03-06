@@ -31,7 +31,7 @@ export type ConvexConfigResult =
   | { ok: false; error: string }
 
 export function getConvexConfig(): ConvexConfigResult {
-  const url = getEnv("CONVEX_URL")
+  const url = getEnv("CONVEX_URL").replace(/\/+$/, "")
   if (!url) return { ok: false, error: "CONVEX_URL is not configured. Set it in 21st dashboard env vars." }
   return { ok: true, url }
 }
