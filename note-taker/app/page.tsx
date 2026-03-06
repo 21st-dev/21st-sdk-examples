@@ -18,25 +18,77 @@ import {
 } from "./components/note-tool-renderers"
 import "@21st-sdk/react/styles.css"
 
-function ChatPanel({ chat }: { chat: Chat<UIMessage> }) {
-  const { messages, sendMessage, status, stop, error } = useChat({ chat })
+function getMessagesStorageKey(sandboxId: string, threadId: string) {
+  return `note-taker:messages:${sandboxId}:${threadId}`
+}
+
+function ChatPanel({
+  sandboxId,
+  threadId,
+  isActive,
+}: {
+  sandboxId: string
+  threadId: string
+  isActive: boolean
+}) {
+  const chat = useMemo(
+    () =>
+      createAgentChat({
+        agent: "note-taker",
+        tokenUrl: "/api/agent/token",
+        sandboxId,
+        threadId,
+      }),
+    [sandboxId, threadId],
+  )
+  const { messages, sendMessage, status, stop, error, setMessages } = useChat({
+    chat: chat as Chat<UIMessage>,
+  })
+  const didHydrateRef = useRef(false)
+  const storageKey = getMessagesStorageKey(sandboxId, threadId)
+
+  useEffect(() => {
+    if (didHydrateRef.current) return
+    didHydrateRef.current = true
+    if (messages.length > 0) return
+
+    try {
+      const stored = localStorage.getItem(storageKey)
+      if (!stored) return
+
+      const parsed = JSON.parse(stored) as UIMessage[]
+      if (parsed.length > 0) {
+        setMessages(parsed)
+      }
+    } catch {}
+  }, [messages.length, setMessages, storageKey])
+
+  useEffect(() => {
+    if (messages.length === 0) return
+
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages))
+    } catch {}
+  }, [messages, storageKey])
 
   return (
-    <AgentChat
-      messages={messages}
-      onSend={(msg) => sendMessage({ text: msg.content })}
-      status={status}
-      onStop={stop}
-      error={error ?? undefined}
-      toolRenderers={{
-        save_note: SaveNoteRenderer,
-        search_notes: SearchNotesRenderer,
-        list_notes: ListNotesRenderer,
-        get_notes_by_tag: TagFilterRenderer,
-        update_note: UpdateNoteRenderer,
-        delete_note: DeleteNoteRenderer,
-      }}
-    />
+    <div className={isActive ? "h-full" : "hidden h-full"}>
+      <AgentChat
+        messages={messages}
+        onSend={(msg) => sendMessage({ text: msg.content })}
+        status={status}
+        onStop={stop}
+        error={error ?? undefined}
+        toolRenderers={{
+          save_note: SaveNoteRenderer,
+          search_notes: SearchNotesRenderer,
+          list_notes: ListNotesRenderer,
+          get_notes_by_tag: TagFilterRenderer,
+          update_note: UpdateNoteRenderer,
+          delete_note: DeleteNoteRenderer,
+        }}
+      />
+    </div>
   )
 }
 
@@ -46,16 +98,6 @@ export default function Home() {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const initRef = useRef(false)
-
-  const chat = useMemo(() => {
-    if (!sandboxId || !activeThreadId) return null
-    return createAgentChat({
-      agent: "note-taker",
-      tokenUrl: "/api/agent/token",
-      sandboxId,
-      threadId: activeThreadId,
-    })
-  }, [sandboxId, activeThreadId])
 
   useEffect(() => {
     if (initRef.current) return
@@ -162,8 +204,15 @@ export default function Home() {
         onNewThread={handleNewThread}
       />
       <div className="flex-1">
-        {chat ? (
-          <ChatPanel key={activeThreadId} chat={chat} />
+        {sandboxId && activeThreadId ? (
+          threads.map((thread) => (
+            <ChatPanel
+              key={thread.id}
+              sandboxId={sandboxId}
+              threadId={thread.id}
+              isActive={thread.id === activeThreadId}
+            />
+          ))
         ) : (
           <div className="flex items-center justify-center h-full text-neutral-500">
             Loading...

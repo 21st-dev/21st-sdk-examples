@@ -10,6 +10,10 @@ import type { ThreadItem } from "./types"
 import { ThreadSidebar } from "./components/thread-sidebar"
 import "@21st-sdk/react/styles.css"
 
+function getMessagesStorageKey(sandboxId: string, threadId: string) {
+  return `nextjs-chat:messages:${sandboxId}:${threadId}`
+}
+
 function TestToolRenderer({ name, status, output }: CustomToolRendererProps) {
   return (
     <div style={{ padding: "8px 12px", background: "#1a1a2e", borderRadius: 8, fontSize: 13 }}>
@@ -26,18 +30,66 @@ function TestToolRenderer({ name, status, output }: CustomToolRendererProps) {
   )
 }
 
-function ChatPanel({ chat }: { chat: Chat<UIMessage> }) {
-  const { messages, sendMessage, status, stop, error } = useChat({ chat })
+function ChatPanel({
+  sandboxId,
+  threadId,
+  isActive,
+}: {
+  sandboxId: string
+  threadId: string
+  isActive: boolean
+}) {
+  const chat = useMemo(
+    () =>
+      createAgentChat({
+        agent: "my-agent",
+        tokenUrl: "/api/agent/token",
+        sandboxId,
+        threadId,
+      }),
+    [sandboxId, threadId],
+  )
+  const { messages, sendMessage, status, stop, error, setMessages } = useChat({
+    chat: chat as Chat<UIMessage>,
+  })
+  const didHydrateRef = useRef(false)
+  const storageKey = getMessagesStorageKey(sandboxId, threadId)
+
+  useEffect(() => {
+    if (didHydrateRef.current) return
+    didHydrateRef.current = true
+    if (messages.length > 0) return
+
+    try {
+      const stored = localStorage.getItem(storageKey)
+      if (!stored) return
+
+      const parsed = JSON.parse(stored) as UIMessage[]
+      if (parsed.length > 0) {
+        setMessages(parsed)
+      }
+    } catch {}
+  }, [messages.length, setMessages, storageKey])
+
+  useEffect(() => {
+    if (messages.length === 0) return
+
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages))
+    } catch {}
+  }, [messages, storageKey])
 
   return (
-    <AgentChat
-      messages={messages}
-      onSend={(msg) => sendMessage({ text: msg.content })}
-      status={status}
-      onStop={stop}
-      error={error ?? undefined}
-      toolRenderers={{ test: TestToolRenderer }}
-    />
+    <div className={isActive ? "h-full" : "hidden h-full"}>
+      <AgentChat
+        messages={messages}
+        onSend={(msg) => sendMessage({ text: msg.content })}
+        status={status}
+        onStop={stop}
+        error={error ?? undefined}
+        toolRenderers={{ test: TestToolRenderer }}
+      />
+    </div>
   )
 }
 
@@ -47,17 +99,6 @@ export default function Home() {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const initRef = useRef(false)
-
-  // Create chat instance when sandboxId + threadId are ready
-  const chat = useMemo(() => {
-    if (!sandboxId || !activeThreadId) return null
-    return createAgentChat({
-      agent: "my-agent",
-      tokenUrl: "/api/agent/token",
-      sandboxId,
-      threadId: activeThreadId,
-    })
-  }, [sandboxId, activeThreadId])
 
   // Initialize: create sandbox, fetch threads, select or create first thread
   useEffect(() => {
@@ -174,8 +215,15 @@ export default function Home() {
         onNewThread={handleNewThread}
       />
       <div className="flex-1">
-        {chat ? (
-          <ChatPanel key={activeThreadId} chat={chat} />
+        {sandboxId && activeThreadId ? (
+          threads.map((thread) => (
+            <ChatPanel
+              key={thread.id}
+              sandboxId={sandboxId}
+              threadId={thread.id}
+              isActive={thread.id === activeThreadId}
+            />
+          ))
         ) : (
           <div className="flex items-center justify-center h-full text-neutral-500">
             Loading...

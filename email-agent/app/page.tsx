@@ -7,8 +7,57 @@ import type { Chat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import "@21st-sdk/react/styles.css"
 
-function ChatPanel({ chat }: { chat: Chat<UIMessage> }) {
-  const { messages, sendMessage, status, stop, error } = useChat({ chat })
+function getMessagesStorageKey(sandboxId: string, threadId: string) {
+  return `email-agent:messages:${sandboxId}:${threadId}`
+}
+
+function ChatPanel({
+  sandboxId,
+  threadId,
+}: {
+  sandboxId: string
+  threadId: string
+}) {
+  const chat = useMemo(
+    () =>
+      createAgentChat({
+        agent: "email-agent",
+        tokenUrl: "/api/agent/token",
+        sandboxId,
+        threadId,
+      }),
+    [sandboxId, threadId],
+  )
+  const { messages, sendMessage, status, stop, error, setMessages } = useChat({
+    chat: chat as Chat<UIMessage>,
+  })
+  const didHydrateRef = useRef(false)
+  const storageKey = getMessagesStorageKey(sandboxId, threadId)
+
+  useEffect(() => {
+    if (didHydrateRef.current) return
+    didHydrateRef.current = true
+    if (messages.length > 0) return
+
+    try {
+      const stored = localStorage.getItem(storageKey)
+      if (!stored) return
+
+      const parsed = JSON.parse(stored) as UIMessage[]
+      if (parsed.length > 0) {
+        setMessages(parsed)
+      }
+    } catch {}
+  }, [messages.length, setMessages, storageKey])
+
+  useEffect(() => {
+    if (messages.length === 0) return
+
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages))
+    } catch {}
+  }, [messages, storageKey])
+
   const starterPrompts = useMemo(
     () => [
       "Send intro email to founder@acme.com about our AI QA tool.",
@@ -68,16 +117,6 @@ export default function Home() {
   const [threadId, setThreadId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const initRef = useRef(false)
-
-  const chat = useMemo(() => {
-    if (!sandboxId || !threadId) return null
-    return createAgentChat({
-      agent: "email-agent",
-      tokenUrl: "/api/agent/token",
-      sandboxId,
-      threadId,
-    })
-  }, [sandboxId, threadId])
 
   useEffect(() => {
     if (initRef.current) return
@@ -141,7 +180,7 @@ export default function Home() {
     )
   }
 
-  if (!chat) {
+  if (!sandboxId || !threadId) {
     return (
       <main className="h-screen flex items-center justify-center bg-neutral-950 text-neutral-500">
         Loading...
@@ -149,5 +188,5 @@ export default function Home() {
     )
   }
 
-  return <ChatPanel chat={chat} />
+  return <ChatPanel sandboxId={sandboxId} threadId={threadId} />
 }

@@ -98,6 +98,10 @@ const ACTIVE_FORM_SCHEMAS: Record<FormId, Record<string, unknown>> = {
 const SYSTEM_NOTE_PREFIX = "[[[SYSTEM NOTE:"
 const SYSTEM_NOTE_SUFFIX = "]]]"
 
+function getMessagesStorageKey(sandboxId: string, threadId: string) {
+  return `fill-form:messages:${sandboxId}:${threadId}`
+}
+
 function isFillFormToolType(type: string): boolean {
   return (
     type === "tool-fill_form" ||
@@ -241,15 +245,59 @@ function asFillFormPart(part: unknown): {
   }
 }
 
-function FormAgent({ chat }: { chat: Chat<UIMessage> }) {
+function FormAgent({
+  sandboxId,
+  threadId,
+}: {
+  sandboxId: string
+  threadId: string
+}) {
   const [activeTab, setActiveTab] = useState<FormId>("profile")
   const lastAppliedToolCallId = useRef<string | null>(null)
+  const chat = useMemo(
+    () =>
+      createAgentChat({
+        agent: "form-agent",
+        tokenUrl: "/api/agent/token",
+        sandboxId,
+        threadId,
+      }),
+    [sandboxId, threadId],
+  )
+  const didHydrateRef = useRef(false)
+  const storageKey = getMessagesStorageKey(sandboxId, threadId)
 
   const { register, setValue, getValues } = useForm<FormValues>({
     defaultValues: DEFAULT_VALUES,
   })
 
-  const { messages, sendMessage, status, stop, error } = useChat({ chat })
+  const { messages, sendMessage, status, stop, error, setMessages } = useChat({
+    chat: chat as Chat<UIMessage>,
+  })
+
+  useEffect(() => {
+    if (didHydrateRef.current) return
+    didHydrateRef.current = true
+    if (messages.length > 0) return
+
+    try {
+      const stored = localStorage.getItem(storageKey)
+      if (!stored) return
+
+      const parsed = JSON.parse(stored) as UIMessage[]
+      if (parsed.length > 0) {
+        setMessages(parsed)
+      }
+    } catch {}
+  }, [messages.length, setMessages, storageKey])
+
+  useEffect(() => {
+    if (messages.length === 0) return
+
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages))
+    } catch {}
+  }, [messages, storageKey])
 
   const displayMessages = useMemo<UIMessage[]>(() => {
     return messages.map((message) => {
@@ -545,16 +593,6 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const initRef = useRef(false)
 
-  const chat = useMemo(() => {
-    if (!sandboxId || !threadId) return null
-    return createAgentChat({
-      agent: "form-agent",
-      tokenUrl: "/api/agent/token",
-      sandboxId,
-      threadId,
-    })
-  }, [sandboxId, threadId])
-
   useEffect(() => {
     if (initRef.current) return
     initRef.current = true
@@ -617,7 +655,7 @@ export default function Home() {
     )
   }
 
-  if (!chat) {
+  if (!sandboxId || !threadId) {
     return (
       <main className="h-screen flex items-center justify-center bg-neutral-950 text-neutral-500">
         Loading...
@@ -625,5 +663,5 @@ export default function Home() {
     )
   }
 
-  return <FormAgent chat={chat} />
+  return <FormAgent sandboxId={sandboxId} threadId={threadId} />
 }
