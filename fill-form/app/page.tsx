@@ -3,6 +3,7 @@
 import { useChat } from "@ai-sdk/react"
 import { AgentChat, createAgentChat } from "@21st-sdk/nextjs"
 import "@21st-sdk/react/styles.css"
+import { useSearchParams } from "next/navigation"
 import type { Chat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -266,6 +267,13 @@ function FormAgent({
   )
   const didHydrateRef = useRef(false)
   const storageKey = getMessagesStorageKey(sandboxId, threadId)
+  const searchParams = useSearchParams()
+  const colorMode =
+    searchParams.get("theme") === "dark"
+      ? "dark"
+      : searchParams.get("theme") === "light"
+        ? "light"
+        : "auto"
 
   const { register, setValue, getValues } = useForm<FormValues>({
     defaultValues: DEFAULT_VALUES,
@@ -568,7 +576,9 @@ function FormAgent({
         )}
       </section>
 
-      <section className="h-screen min-h-0">
+      <section
+        className={`h-screen min-h-0${colorMode === "dark" ? " dark" : ""}`}
+      >
         <AgentChat
           messages={displayMessages}
           onSend={(msg) => {
@@ -579,7 +589,6 @@ function FormAgent({
           status={status}
           onStop={stop}
           error={error ?? undefined}
-          colorMode="dark"
           className="h-full"
         />
       </section>

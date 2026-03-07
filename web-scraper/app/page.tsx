@@ -5,6 +5,7 @@ import "@21st-sdk/react/styles.css"
 import type { Chat } from "@ai-sdk/react"
 import { useChat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
+import { useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   BrowserUseExtractRenderer,
@@ -41,8 +42,15 @@ function ChatPanel({
   const { messages, sendMessage, status, stop, error, setMessages } = useChat({
     chat: chat as Chat<UIMessage>,
   })
+  const searchParams = useSearchParams()
   const didHydrateRef = useRef(false)
   const storageKey = getMessagesStorageKey(sandboxId, threadId)
+  const colorMode =
+    searchParams.get("theme") === "dark"
+      ? "dark"
+      : searchParams.get("theme") === "light"
+        ? "light"
+        : "auto"
 
   useEffect(() => {
     if (didHydrateRef.current) return
@@ -69,7 +77,11 @@ function ChatPanel({
   }, [messages, storageKey])
 
   return (
-    <div className={isActive ? "h-full" : "hidden h-full"}>
+    <div
+      className={`${isActive ? "" : "hidden "}h-full${
+        colorMode === "dark" ? " dark" : ""
+      }`}
+    >
       <AgentChat
         messages={messages}
         onSend={(msg) => sendMessage({ text: msg.content })}

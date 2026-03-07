@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useChat } from "@ai-sdk/react"
 import { AgentChat, createAgentChat } from "@21st-sdk/nextjs"
+import { useSearchParams } from "next/navigation"
 import type { Chat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import "@21st-sdk/react/styles.css"
@@ -31,8 +32,15 @@ function ChatPanel({
   const { messages, sendMessage, status, stop, error, setMessages } = useChat({
     chat: chat as Chat<UIMessage>,
   })
+  const searchParams = useSearchParams()
   const didHydrateRef = useRef(false)
   const storageKey = getMessagesStorageKey(sandboxId, threadId)
+  const colorMode =
+    searchParams.get("theme") === "dark"
+      ? "dark"
+      : searchParams.get("theme") === "light"
+        ? "light"
+        : "auto"
 
   useEffect(() => {
     if (didHydrateRef.current) return
@@ -99,14 +107,17 @@ function ChatPanel({
         </section>
       </aside>
 
-      <section className="min-h-0 overflow-hidden">
+      <section
+        className={`min-h-0 overflow-hidden${
+          colorMode === "dark" ? " dark" : ""
+        }`}
+      >
         <AgentChat
           messages={messages}
           onSend={(msg) => sendMessage({ text: msg.content })}
           status={status}
           onStop={stop}
           error={error ?? undefined}
-          colorMode="dark"
           className="h-full min-h-0"
         />
       </section>
