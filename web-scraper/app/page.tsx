@@ -6,7 +6,7 @@ import type { Chat } from "@ai-sdk/react"
 import { useChat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import { useSearchParams } from "next/navigation"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   BrowserUseExtractRenderer,
   SubmitExtractionRenderer,
@@ -97,7 +97,7 @@ function ChatPanel({
   )
 }
 
-export default function Home() {
+function HomeContent() {
   const searchParams = useSearchParams()
   const [sandboxId, setSandboxId] = useState<string | null>(null)
   const [threads, setThreads] = useState<ThreadItem[]>([])
@@ -237,5 +237,13 @@ export default function Home() {
         )}
       </div>
     </main>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<main className="h-screen flex items-center justify-center">Loading...</main>}>
+      <HomeContent />
+    </Suspense>
   )
 }

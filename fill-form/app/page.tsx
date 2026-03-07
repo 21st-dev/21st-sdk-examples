@@ -6,7 +6,7 @@ import "@21st-sdk/react/styles.css"
 import { useSearchParams } from "next/navigation"
 import type { Chat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 
 type FormId = "profile" | "order" | "support"
@@ -597,7 +597,7 @@ function FormAgent({
   )
 }
 
-export default function Home() {
+function HomeContent() {
   const [sandboxId, setSandboxId] = useState<string | null>(null)
   const [threadId, setThreadId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -674,4 +674,12 @@ export default function Home() {
   }
 
   return <FormAgent sandboxId={sandboxId} threadId={threadId} />
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<main className="h-screen flex items-center justify-center">Loading...</main>}>
+      <HomeContent />
+    </Suspense>
+  )
 }

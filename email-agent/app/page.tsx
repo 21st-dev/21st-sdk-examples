@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useChat } from "@ai-sdk/react"
 import { AgentChat, createAgentChat } from "@21st-sdk/nextjs"
 import { useSearchParams } from "next/navigation"
@@ -126,7 +126,7 @@ function ChatPanel({
   )
 }
 
-export default function Home() {
+function HomeContent() {
   const [sandboxId, setSandboxId] = useState<string | null>(null)
   const [threadId, setThreadId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -203,4 +203,12 @@ export default function Home() {
   }
 
   return <ChatPanel sandboxId={sandboxId} threadId={threadId} />
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<main className="h-screen flex items-center justify-center">Loading...</main>}>
+      <HomeContent />
+    </Suspense>
+  )
 }
