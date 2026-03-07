@@ -31,7 +31,7 @@ function NotesList() {
 
   if (notes === undefined) {
     return (
-      <div className="p-4 text-center text-neutral-500 text-sm">
+      <div className="p-4 text-center text-sm text-neutral-500 dark:text-neutral-400">
         Loading notes...
       </div>
     )
@@ -39,9 +39,9 @@ function NotesList() {
 
   if (notes.length === 0) {
     return (
-      <div className="p-4 text-center text-sm text-neutral-500">
+      <div className="p-4 text-center text-sm text-neutral-500 dark:text-neutral-400">
         <p>No notes yet.</p>
-        <p className="mt-2 text-neutral-500 dark:text-neutral-600">
+        <p className="mt-2 text-neutral-500 dark:text-neutral-500">
           Try saying &quot;Remember: project X deadline is Friday&quot;
         </p>
       </div>
@@ -72,13 +72,13 @@ function NotesList() {
   return (
     <>
       <div className="pt-3 flex items-center justify-between px-4">
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-neutral-500 dark:text-neutral-400">
           {notes.length} note{notes.length !== 1 ? "s" : ""}
         </p>
         <button
           onClick={handleRemoveAll}
           disabled={isRemovingAll}
-          className="text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="text-xs text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Remove all
         </button>
@@ -117,7 +117,7 @@ function NotesList() {
                 ))}
               </div>
             )}
-            <p className="text-[10px] mt-2 text-neutral-500 dark:text-neutral-600">
+            <p className="text-[10px] mt-2 text-neutral-500 dark:text-neutral-500">
               {formatDate(note.updatedAt)}
             </p>
           </div>
@@ -134,9 +134,9 @@ export function NotesSidebarContent() {
         {hasConvex ? (
           <NotesList />
         ) : (
-          <div className="p-4 text-center text-sm text-neutral-500">
+          <div className="p-4 text-center text-sm text-neutral-500 dark:text-neutral-400">
             <p>Convex not configured.</p>
-            <p className="mt-2 text-neutral-500 dark:text-neutral-600">
+            <p className="mt-2 text-neutral-500 dark:text-neutral-500">
               Set NEXT_PUBLIC_CONVEX_URL in .env.local
             </p>
           </div>
