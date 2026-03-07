@@ -19,15 +19,15 @@ export function ThreadSidebar({
   onViewChange,
 }: ThreadSidebarProps) {
   return (
-    <aside className="w-72 border-r border-neutral-800 flex flex-col h-full bg-neutral-950">
-      <div className="p-3 border-b border-neutral-800 space-y-3">
-        <div className="grid grid-cols-2 gap-2 rounded-md bg-neutral-900 p-1">
+    <aside className="w-72 flex flex-col h-full border-r border-neutral-200 bg-white text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100">
+      <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 space-y-3">
+        <div className="grid grid-cols-2 gap-2 rounded-md p-1 bg-neutral-100 dark:bg-neutral-900">
           <button
             onClick={() => onViewChange("notes")}
             className={`px-3 py-2 text-sm rounded transition-colors ${
               view === "notes"
-                ? "bg-neutral-700 text-white"
-                : "text-neutral-400 hover:text-neutral-200"
+                ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-700 dark:text-white dark:shadow-none"
+                : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200"
             }`}
           >
             Notes
@@ -36,8 +36,8 @@ export function ThreadSidebar({
             onClick={() => onViewChange("threads")}
             className={`px-3 py-2 text-sm rounded transition-colors ${
               view === "threads"
-                ? "bg-neutral-700 text-white"
-                : "text-neutral-400 hover:text-neutral-200"
+                ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-700 dark:text-white dark:shadow-none"
+                : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200"
             }`}
           >
             Threads
@@ -47,7 +47,7 @@ export function ThreadSidebar({
         {view === "threads" && (
           <button
             onClick={onNewThread}
-            className="w-full px-3 py-2 text-sm bg-neutral-800 hover:bg-neutral-700 rounded-md transition-colors"
+            className="w-full px-3 py-2 text-sm rounded-md transition-colors bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
           >
             + New Thread
           </button>
@@ -62,8 +62,8 @@ export function ThreadSidebar({
               onClick={() => onSelectThread(thread.id)}
               className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
                 thread.id === activeThreadId
-                  ? "bg-neutral-700 text-white"
-                  : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+                  ? "bg-neutral-200 text-neutral-900 dark:bg-neutral-700 dark:text-white"
+                  : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
               }`}
             >
               {thread.name || "Untitled"}

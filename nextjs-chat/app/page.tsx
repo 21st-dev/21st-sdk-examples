@@ -106,11 +106,13 @@ function ChatPanel({
 }
 
 export default function Home() {
+  const searchParams = useSearchParams()
   const [sandboxId, setSandboxId] = useState<string | null>(null)
   const [threads, setThreads] = useState<ThreadItem[]>([])
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const initRef = useRef(false)
+  const themeClass = searchParams.get("theme") === "light" ? "" : "dark"
 
   // Initialize: create sandbox, fetch threads, select or create first thread
   useEffect(() => {
@@ -219,7 +221,7 @@ export default function Home() {
   }
 
   return (
-    <main className="h-screen flex">
+    <main className={`h-screen flex bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100 ${themeClass}`}>
       <ThreadSidebar
         threads={threads}
         activeThreadId={activeThreadId}

@@ -41,6 +41,7 @@ function ChatPanel({
       : searchParams.get("theme") === "light"
         ? "light"
         : "auto"
+  const themeClass = colorMode === "light" ? "" : "dark"
 
   useEffect(() => {
     if (didHydrateRef.current) return
@@ -76,10 +77,10 @@ function ChatPanel({
   )
 
   return (
-    <main className="h-screen min-h-0 grid grid-cols-[340px_minmax(0,1fr)] bg-neutral-950 text-neutral-100">
-      <aside className="min-h-0 border-r border-neutral-800 p-4 overflow-y-auto">
+    <main className={`h-screen min-h-0 grid grid-cols-[340px_minmax(0,1fr)] bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100 ${themeClass}`}>
+      <aside className="min-h-0 p-4 overflow-y-auto border-r border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
         <h1 className="text-lg font-semibold">Email Agent Boilerplate</h1>
-        <p className="mt-2 text-sm text-neutral-400">
+        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
           Hackathon template for outbound + inbox workflows with 21st SDK + AgentMail.
         </p>
 
@@ -90,16 +91,16 @@ function ChatPanel({
               key={prompt}
               type="button"
               onClick={() => sendMessage({ text: prompt })}
-              className="w-full text-left rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm hover:border-neutral-700"
+              className="w-full text-left rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm transition-colors hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
             >
               {prompt}
             </button>
           ))}
         </section>
 
-        <section className="mt-6 rounded-md border border-neutral-800 bg-neutral-900 p-3">
+        <section className="mt-6 rounded-md border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
           <h2 className="text-xs uppercase tracking-wide text-neutral-500">Capabilities</h2>
-          <ul className="mt-2 space-y-1 text-sm text-neutral-300">
+          <ul className="mt-2 space-y-1 text-sm text-neutral-700 dark:text-neutral-300">
             <li>- Draft and send intro emails</li>
             <li>- Read recent inbox messages</li>
             <li>- Auto-reply to inbound threads</li>

@@ -274,6 +274,7 @@ function FormAgent({
       : searchParams.get("theme") === "light"
         ? "light"
         : "auto"
+  const themeClass = colorMode === "light" ? "" : "dark"
 
   const { register, setValue, getValues } = useForm<FormValues>({
     defaultValues: DEFAULT_VALUES,
@@ -434,17 +435,17 @@ function FormAgent({
   }
 
   return (
-    <main className="h-screen bg-neutral-950 text-neutral-100 grid grid-cols-[282px_minmax(0,1fr)]">
-      <section className="border-r border-neutral-800 p-4 overflow-y-auto">
-        <div className="mb-5 rounded-full border border-neutral-800 bg-neutral-900 p-1">
+    <main className={`h-screen grid grid-cols-[282px_minmax(0,1fr)] bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100 ${themeClass}`}>
+      <section className="p-4 overflow-y-auto border-r border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+        <div className="mb-5 rounded-full border p-1 border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900">
           <div className="grid grid-cols-3 gap-1">
           <button
             type="button"
             onClick={() => setActiveTab("profile")}
             className={`w-full rounded-full px-3 py-2 text-sm transition-colors duration-200 ${
               activeTab === "profile"
-                ? "bg-neutral-100 text-neutral-900"
-                : "bg-transparent text-neutral-300 hover:bg-neutral-800"
+                ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-100 dark:text-neutral-900 dark:shadow-none"
+                : "bg-transparent text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
             }`}
           >
             Profile
@@ -454,8 +455,8 @@ function FormAgent({
             onClick={() => setActiveTab("order")}
             className={`w-full rounded-full px-3 py-2 text-sm transition-colors duration-200 ${
               activeTab === "order"
-                ? "bg-neutral-100 text-neutral-900"
-                : "bg-transparent text-neutral-300 hover:bg-neutral-800"
+                ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-100 dark:text-neutral-900 dark:shadow-none"
+                : "bg-transparent text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
             }`}
           >
             Order
@@ -465,8 +466,8 @@ function FormAgent({
             onClick={() => setActiveTab("support")}
             className={`w-full rounded-full px-3 py-2 text-sm transition-colors duration-200 ${
               activeTab === "support"
-                ? "bg-neutral-100 text-neutral-900"
-                : "bg-transparent text-neutral-300 hover:bg-neutral-800"
+                ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-100 dark:text-neutral-900 dark:shadow-none"
+                : "bg-transparent text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
             }`}
           >
             Support
@@ -477,20 +478,20 @@ function FormAgent({
         {activeTab === "profile" && (
           <form className="space-y-3" onSubmit={(event) => event.preventDefault()}>
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-400">Full name</span>
-              <input {...register("profile.fullName")} className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2" />
+              <span className="mb-1 block text-xs text-neutral-600 dark:text-neutral-400">Full name</span>
+              <input {...register("profile.fullName")} className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900" />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-400">Email</span>
-              <input type="email" {...register("profile.email")} className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2" />
+              <span className="mb-1 block text-xs text-neutral-600 dark:text-neutral-400">Email</span>
+              <input type="email" {...register("profile.email")} className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900" />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-400">Age</span>
-              <input type="number" {...register("profile.age")} className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2" />
+              <span className="mb-1 block text-xs text-neutral-600 dark:text-neutral-400">Age</span>
+              <input type="number" {...register("profile.age")} className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900" />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-400">Role</span>
-              <select {...register("profile.role")} className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2">
+              <span className="mb-1 block text-xs text-neutral-600 dark:text-neutral-400">Role</span>
+              <select {...register("profile.role")} className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900">
                 <option value="designer">Designer</option>
                 <option value="engineer">Engineer</option>
                 <option value="manager">Manager</option>
@@ -507,28 +508,28 @@ function FormAgent({
         {activeTab === "order" && (
           <form className="space-y-3" onSubmit={(event) => event.preventDefault()}>
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-400">Product</span>
-              <select {...register("order.product")} className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2">
+              <span className="mb-1 block text-xs text-neutral-600 dark:text-neutral-400">Product</span>
+              <select {...register("order.product")} className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900">
                 <option value="starter">Starter</option>
                 <option value="pro">Pro</option>
                 <option value="enterprise">Enterprise</option>
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-400">Quantity</span>
-              <input type="number" {...register("order.quantity")} className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2" />
+              <span className="mb-1 block text-xs text-neutral-600 dark:text-neutral-400">Quantity</span>
+              <input type="number" {...register("order.quantity")} className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900" />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-400">Delivery date</span>
-              <input type="date" {...register("order.deliveryDate")} className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2" />
+              <span className="mb-1 block text-xs text-neutral-600 dark:text-neutral-400">Delivery date</span>
+              <input type="date" {...register("order.deliveryDate")} className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900" />
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" {...register("order.giftWrap")} />
               Gift wrap
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-400">Notes</span>
-              <textarea rows={3} {...register("order.notes")} className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2" />
+              <span className="mb-1 block text-xs text-neutral-600 dark:text-neutral-400">Notes</span>
+              <textarea rows={3} {...register("order.notes")} className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900" />
             </label>
           </form>
         )}
@@ -536,11 +537,11 @@ function FormAgent({
         {activeTab === "support" && (
           <form className="space-y-3" onSubmit={(event) => event.preventDefault()}>
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-400">Topic</span>
-              <input {...register("support.topic")} className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2" />
+              <span className="mb-1 block text-xs text-neutral-600 dark:text-neutral-400">Topic</span>
+              <input {...register("support.topic")} className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900" />
             </label>
             <fieldset>
-              <legend className="mb-1 block text-xs text-neutral-400">Priority</legend>
+              <legend className="mb-1 block text-xs text-neutral-600 dark:text-neutral-400">Priority</legend>
               <div className="flex gap-4 text-sm">
                 <label className="flex items-center gap-2">
                   <input type="radio" value="low" {...register("support.priority")} />
@@ -557,8 +558,8 @@ function FormAgent({
               </div>
             </fieldset>
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-400">Preferred contact</span>
-              <select {...register("support.contactMethod")} className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2">
+              <span className="mb-1 block text-xs text-neutral-600 dark:text-neutral-400">Preferred contact</span>
+              <select {...register("support.contactMethod")} className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900">
                 <option value="email">Email</option>
                 <option value="phone">Phone</option>
                 <option value="chat">Chat</option>
@@ -569,8 +570,8 @@ function FormAgent({
               Allow follow-up
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs text-neutral-400">Message</span>
-              <textarea rows={4} {...register("support.message")} className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2" />
+              <span className="mb-1 block text-xs text-neutral-600 dark:text-neutral-400">Message</span>
+              <textarea rows={4} {...register("support.message")} className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900" />
             </label>
           </form>
         )}

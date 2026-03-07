@@ -39,9 +39,9 @@ function NotesList() {
 
   if (notes.length === 0) {
     return (
-      <div className="p-4 text-center text-neutral-500 text-sm">
+      <div className="p-4 text-center text-sm text-neutral-500">
         <p>No notes yet.</p>
-        <p className="mt-2 text-neutral-600">
+        <p className="mt-2 text-neutral-500 dark:text-neutral-600">
           Try saying &quot;Remember: project X deadline is Friday&quot;
         </p>
       </div>
@@ -78,7 +78,7 @@ function NotesList() {
         <button
           onClick={handleRemoveAll}
           disabled={isRemovingAll}
-          className="text-xs text-neutral-500 hover:text-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Remove all
         </button>
@@ -87,22 +87,22 @@ function NotesList() {
         {notes.map((note) => (
           <div
             key={note._id}
-            className="p-3 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-700 transition-colors"
+            className="p-3 rounded-lg border transition-colors bg-white border-neutral-200 hover:border-neutral-300 dark:bg-neutral-900 dark:border-neutral-800 dark:hover:border-neutral-700"
           >
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-sm font-medium text-neutral-200 truncate">
+              <h3 className="text-sm font-medium truncate text-neutral-900 dark:text-neutral-200">
                 {note.title}
               </h3>
               <button
                 onClick={() => handleRemoveNote(note._id)}
                 disabled={removingId === note._id || isRemovingAll}
-                className="shrink-0 text-base leading-none text-neutral-500 hover:text-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="shrink-0 text-base leading-none text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 aria-label={`Remove ${note.title}`}
               >
                 {removingId === note._id ? "…" : "×"}
               </button>
             </div>
-            <p className="text-xs text-neutral-400 mt-1 line-clamp-2">
+            <p className="text-xs mt-1 line-clamp-2 text-neutral-600 dark:text-neutral-400">
               {note.content}
             </p>
             {note.tags.length > 0 && (
@@ -110,14 +110,14 @@ function NotesList() {
                 {note.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="px-1.5 py-0.5 text-[10px] rounded bg-neutral-800 text-neutral-400"
+                    className="px-1.5 py-0.5 text-[10px] rounded bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
                   >
                     {tag}
                   </span>
                 ))}
               </div>
             )}
-            <p className="text-[10px] text-neutral-600 mt-2">
+            <p className="text-[10px] mt-2 text-neutral-500 dark:text-neutral-600">
               {formatDate(note.updatedAt)}
             </p>
           </div>
@@ -129,14 +129,14 @@ function NotesList() {
 
 export function NotesSidebarContent() {
   return (
-    <div className="flex h-full flex-col bg-neutral-950">
+    <div className="flex h-full flex-col bg-white dark:bg-neutral-950">
       <div className="flex-1 overflow-y-auto">
         {hasConvex ? (
           <NotesList />
         ) : (
-          <div className="p-4 text-center text-neutral-500 text-sm">
+          <div className="p-4 text-center text-sm text-neutral-500">
             <p>Convex not configured.</p>
-            <p className="mt-2 text-neutral-600">
+            <p className="mt-2 text-neutral-500 dark:text-neutral-600">
               Set NEXT_PUBLIC_CONVEX_URL in .env.local
             </p>
           </div>

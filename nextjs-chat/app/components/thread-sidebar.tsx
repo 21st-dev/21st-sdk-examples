@@ -14,11 +14,11 @@ export function ThreadSidebar({
   onNewThread,
 }: ThreadSidebarProps) {
   return (
-    <aside className="w-64 border-r border-neutral-800 flex flex-col h-full">
-      <div className="p-3 border-b border-neutral-800">
+    <aside className="w-64 flex flex-col h-full border-r border-neutral-200 bg-white text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100">
+      <div className="p-3 border-b border-neutral-200 dark:border-neutral-800">
         <button
           onClick={onNewThread}
-          className="w-full px-3 py-2 text-sm bg-neutral-800 hover:bg-neutral-700 rounded-md transition-colors"
+          className="w-full px-3 py-2 text-sm rounded-md transition-colors bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
         >
           + New Thread
         </button>
@@ -30,8 +30,8 @@ export function ThreadSidebar({
             onClick={() => onSelectThread(thread.id)}
             className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
               thread.id === activeThreadId
-                ? "bg-neutral-700 text-white"
-                : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+                ? "bg-neutral-200 text-neutral-900 dark:bg-neutral-700 dark:text-white"
+                : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
             }`}
           >
             {thread.name || "Untitled"}
