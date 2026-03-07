@@ -11,6 +11,7 @@ Example projects for the [21st SDK](https://21st.dev/agents) — deploy AI codin
 | [`email-agent`](./email-agent) | Email operations copilot — send, read inbox, auto-reply via AgentMail | Next.js, AgentMail, @21st-sdk |
 | [`note-taker`](./note-taker) | AI notebook assistant with persistent notes via Convex | Next.js, Convex, @21st-sdk |
 | [`monitor-agent`](./monitor-agent) | Service health monitoring with Slack alerts | Node.js CLI, @21st-sdk |
+| [`python-terminal-chat`](./python-terminal-chat) | Minimal terminal chat client using the Python SDK | Python, 21st-sdk |
 
 ## Quick Start
 

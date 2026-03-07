@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "example-python-terminal-chat"
+version = "0.1.0"
+description = "Terminal chat example for the 21st SDK Python client"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+  { name = "21st.dev" },
+]
+
+[project.scripts]
+python-terminal-chat = "python_terminal_chat.cli:main"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]

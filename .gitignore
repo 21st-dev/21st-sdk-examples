@@ -8,3 +8,10 @@ dist
 .vercel
 *.tsbuildinfo
 .DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.eggs/
+*.egg
