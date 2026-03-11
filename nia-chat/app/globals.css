@@ -30,6 +30,12 @@
   html,
   body {
     height: 100%;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
   }
 
   body {
@@ -69,5 +75,29 @@
 
   .an-focus-btn:focus-visible {
     box-shadow: 0 0 0 3px hsl(var(--ring) / 0.24);
+  }
+
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+
+  .an-root {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .an-message-list,
+  .an-input-bar,
+  .an-message-list > div,
+  .an-input-bar > div {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
   }
 }

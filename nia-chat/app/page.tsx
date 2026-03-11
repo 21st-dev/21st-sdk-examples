@@ -60,7 +60,7 @@ function RepositoryPicker({
         <div className="space-y-3">
           <input
             value={repoInput}
-            onChange={(event) => onRepoInputChange(event.target.value)}
+            onChange={(event) => onRepoInputChange(event.target.value.toLowerCase())}
             placeholder="vercel/ai or https://github.com/vercel/ai"
             className="an-focus-input h-10 w-full rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-3 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground)/0.7)]"
           />
@@ -187,7 +187,7 @@ function ChatPanel({
 
   return (
     <div
-      className={`h-full min-h-0 w-full overflow-hidden${
+      className={`h-full min-h-0 min-w-0 w-full overflow-hidden${
         colorMode === "dark" ? " dark" : ""
       }`}
     >
@@ -388,7 +388,7 @@ function HomeContent() {
   if (!isStorageReady) {
     return (
       <div className={themeClass}>
-        <main className="flex h-[100dvh] min-h-0 overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
+        <main className="flex h-[100svh] max-h-[100svh] w-full min-h-0 max-w-full overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
           <InitialLoader />
         </main>
       </div>
@@ -397,7 +397,7 @@ function HomeContent() {
 
   return (
     <div className={themeClass}>
-      <main className="flex h-[100dvh] min-h-0 overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
+      <main className="flex h-[100svh] max-h-[100svh] w-full min-h-0 max-w-full overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
         {sessions.length > 0 ? (
           <>
             <ThreadSidebar
@@ -410,7 +410,7 @@ function HomeContent() {
               onToggleTheme={handleToggleTheme}
               className="hidden shrink-0 md:flex"
             />
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--background))]">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--background))]">
               <div className="flex items-center gap-2 border-b border-[hsl(var(--border))] px-3 py-2 md:hidden">
                 <button
                   onClick={() => setIsSidebarOpen(true)}
@@ -453,11 +453,11 @@ function HomeContent() {
                   {error}
                 </div>
               ) : null}
-              <div className="relative min-h-0 flex-1 overflow-hidden">
+              <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
                 {sessions.map((session) => (
                   <div
                     key={session.id}
-                    className={`h-full min-h-0 w-full overflow-hidden ${
+                    className={`h-full min-h-0 min-w-0 w-full overflow-hidden ${
                       session.id === activeSessionId ? "block" : "hidden"
                     }`}
                     aria-hidden={session.id === activeSessionId ? undefined : true}
@@ -525,7 +525,7 @@ export default function Home() {
   return (
     <Suspense
       fallback={
-        <main className="flex h-[100dvh] items-center justify-center bg-[hsl(240_10%_3.9%)] text-[hsl(240_4.8%_95.9%)]">
+        <main className="flex h-[100svh] max-h-[100svh] w-full items-center justify-center overflow-hidden bg-[hsl(240_10%_3.9%)] text-[hsl(240_4.8%_95.9%)]">
           Loading...
         </main>
       }
