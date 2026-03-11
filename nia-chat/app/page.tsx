@@ -6,17 +6,18 @@ import { createAgentChat, AgentChat } from "@21st-sdk/nextjs"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import type { Chat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
+import { NIA_AGENT_NAME } from "./constants"
 import type { ChatSession } from "./types"
 import { ThreadSidebar } from "./components/thread-sidebar"
 import "@21st-sdk/react/styles.css"
 
-const LAST_REPOSITORY_STORAGE_KEY = "nia-agent:last-repository"
-const SESSIONS_STORAGE_KEY = "nia-agent:sessions"
-const ACTIVE_SESSION_STORAGE_KEY = "nia-agent:active-session"
+const LAST_REPOSITORY_STORAGE_KEY = `${NIA_AGENT_NAME}:last-repository`
+const SESSIONS_STORAGE_KEY = `${NIA_AGENT_NAME}:sessions`
+const ACTIVE_SESSION_STORAGE_KEY = `${NIA_AGENT_NAME}:active-session`
 const SYSTEM_REMINDER_PATTERN = /\n\n\[\[\[SYSTEM NOTE:[\s\S]*?\]\]\]$/i
 
 function getMessagesStorageKey(repository: string, sandboxId: string, threadId: string) {
-  return `nia-agent:messages:${repository}:${sandboxId}:${threadId}`
+  return `${NIA_AGENT_NAME}:messages:${repository}:${sandboxId}:${threadId}`
 }
 
 function buildRepositoryReminder(repository: string) {
@@ -121,7 +122,7 @@ function ChatPanel({
   const chat = useMemo(
     () =>
       createAgentChat({
-        agent: "nia-agent",
+        agent: NIA_AGENT_NAME,
         tokenUrl: "/api/agent/token",
         sandboxId,
         threadId,

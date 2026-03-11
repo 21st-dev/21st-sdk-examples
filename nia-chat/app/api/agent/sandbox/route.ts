@@ -1,5 +1,6 @@
 import { AgentClient } from "@21st-sdk/node"
 import { NextRequest, NextResponse } from "next/server"
+import { NIA_AGENT_NAME } from "@/app/constants"
 
 const client = new AgentClient({ apiKey: process.env.API_KEY_21ST! })
 
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     console.log("[sandbox] Creating new sandbox...")
     const sandbox = await client.sandboxes.create({
-      agent: "nia-agent",
+      agent: NIA_AGENT_NAME,
       files: body.repository
         ? {
             "/home/user/selected-repository.txt": `${body.repository}\n`,

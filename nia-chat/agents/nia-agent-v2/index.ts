@@ -1,32 +1,12 @@
 import { agent, Sandbox } from "@21st-sdk/agent"
 
-const mcpConfig = JSON.stringify(
-  {
-    mcpServers: {
-      nia: {
-        command: "pipx",
-        args: ["run", "--no-cache", "nia-mcp-server"],
-        env: {
-          NIA_API_URL: "https://apigcp.trynia.ai/",
-        },
-      },
-    },
-  },
-  null,
-  2,
-)
-
 export default agent({
   runtime: "claude-code",
   model: "claude-haiku-4-5",
   permissionMode: "bypassPermissions",
   maxTurns: 50,
   sandbox: Sandbox({
-    apt: ["python3", "python3-venv", "pipx"],
-    build: ["python3 --version", "pipx --version"],
-    files: {
-      "/home/user/.mcp.json": mcpConfig,
-    },
+    apt: ["curl", "jq"]
   }),
   systemPrompt: `You are Nia agent. Your job is to do research on GitHub repositories selected by the user.
 
