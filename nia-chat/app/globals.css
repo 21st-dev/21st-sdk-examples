@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --muted: 0 0% 92%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --border: 240 5.9% 90%;
+    --input: 240 4.9% 83.9%;
+    --ring: 228 100% 50%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 240 4.8% 95.9%;
+    --muted: 240 5.9% 10%;
+    --muted-foreground: 240 4.4% 58%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 228 100% 50%;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer utilities {
+  .an-focus-input {
+    outline: none;
+    transition:
+      box-shadow 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease,
+      background-color 0.15s ease;
+  }
+
+  .an-focus-input:focus-visible {
+    border-color: hsl(var(--ring) / 0.5);
+    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.24);
+  }
+
+  .an-focus-btn {
+    outline: none;
+    cursor: pointer;
+    transition:
+      box-shadow 0.15s ease,
+      color 0.15s ease,
+      background-color 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .an-focus-btn:focus-visible {
+    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.24);
+  }
+}

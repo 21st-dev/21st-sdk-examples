@@ -7,6 +7,7 @@ Example projects for the [21st SDK](https://21st.dev/agents) — deploy AI codin
 | Example | Description | Stack |
 |---------|-------------|-------|
 | [`nextjs-chat`](./nextjs-chat) | Chat UI connected to a deployed agent with web search | Next.js, @21st-sdk |
+| [`nia-chat`](./nia-chat) | Same chat UI pattern, but wired to Nia MCP for GitHub repository analysis | Next.js, @21st-sdk |
 | [`nextjs-fill-form`](./nextjs-fill-form) | AI-powered form filling with tabbed forms + chat | Next.js, React Hook Form, @21st-sdk |
 | [`email-agent`](./email-agent) | Email operations copilot — send, read inbox, auto-reply via AgentMail | Next.js, AgentMail, @21st-sdk |
 | [`note-taker`](./note-taker) | AI notebook assistant with persistent notes via Convex | Next.js, Convex, @21st-sdk |
