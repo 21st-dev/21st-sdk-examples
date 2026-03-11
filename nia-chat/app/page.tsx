@@ -91,6 +91,24 @@ function InitialLoader() {
   )
 }
 
+function MenuIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    >
+      <path d="M2.75 4.25h10.5" />
+      <path d="M2.75 8h10.5" />
+      <path d="M2.75 11.75h10.5" />
+    </svg>
+  )
+}
+
 function ChatPanel({
   repository,
   sandboxId,
@@ -169,7 +187,7 @@ function ChatPanel({
 
   return (
     <div
-      className={`h-full min-h-0 overflow-hidden${
+      className={`h-full min-h-0 w-full overflow-hidden${
         colorMode === "dark" ? " dark" : ""
       }`}
     >
@@ -183,7 +201,7 @@ function ChatPanel({
         status={status}
         onStop={stop}
         error={error ?? undefined}
-        className="h-full min-h-0"
+        className="h-full min-h-0 w-full"
       />
     </div>
   )
@@ -198,6 +216,7 @@ function HomeContent() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [isPreparingRepository, setIsPreparingRepository] = useState(false)
   const [isStorageReady, setIsStorageReady] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const currentTheme = searchParams.get("theme") === "light" ? "light" : "dark"
   const themeClass = currentTheme === "light" ? "" : "dark"
@@ -232,6 +251,12 @@ function HomeContent() {
   }, [])
 
   useEffect(() => {
+    if (sessions.length === 0) {
+      setIsSidebarOpen(false)
+    }
+  }, [sessions.length])
+
+  useEffect(() => {
     if (!isStorageReady) return
 
     try {
@@ -248,6 +273,7 @@ function HomeContent() {
   const handleNewThread = useCallback(() => {
     setError(null)
     setActiveSessionId(null)
+    setIsSidebarOpen(false)
 
     try {
       const storedRepository = localStorage.getItem(LAST_REPOSITORY_STORAGE_KEY)
@@ -260,6 +286,7 @@ function HomeContent() {
   const handleSelectThread = useCallback((threadId: string) => {
     setError(null)
     setActiveSessionId(threadId)
+    setIsSidebarOpen(false)
   }, [])
 
   const handleDeleteThread = useCallback((threadId: string) => {
@@ -279,6 +306,10 @@ function HomeContent() {
 
     if (activeSessionId === threadId) {
       setActiveSessionId(nextSessions[0]?.id ?? null)
+    }
+
+    if (nextSessions.length === 0) {
+      setIsSidebarOpen(false)
     }
   }, [activeSessionId, sessions])
 
@@ -342,6 +373,7 @@ function HomeContent() {
         const nextSessions = [session, ...sessions]
         setSessions(nextSessions)
         setActiveSessionId(session.id)
+        setIsSidebarOpen(false)
         setRepoInput(sourceData.repository)
         localStorage.setItem(LAST_REPOSITORY_STORAGE_KEY, sourceData.repository)
       } catch (err) {
@@ -356,7 +388,7 @@ function HomeContent() {
   if (!isStorageReady) {
     return (
       <div className={themeClass}>
-        <main className="flex h-screen min-h-0 overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
+        <main className="flex h-[100dvh] min-h-0 overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
           <InitialLoader />
         </main>
       </div>
@@ -365,7 +397,7 @@ function HomeContent() {
 
   return (
     <div className={themeClass}>
-      <main className="flex h-screen min-h-0 overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
+      <main className="flex h-[100dvh] min-h-0 overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
         {sessions.length > 0 ? (
           <>
             <ThreadSidebar
@@ -376,8 +408,46 @@ function HomeContent() {
               onNewThread={handleNewThread}
               onDeleteThread={handleDeleteThread}
               onToggleTheme={handleToggleTheme}
+              className="hidden shrink-0 md:flex"
             />
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--background))]">
+              <div className="flex items-center gap-2 border-b border-[hsl(var(--border))] px-3 py-2 md:hidden">
+                <button
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="an-focus-btn flex h-9 w-9 items-center justify-center rounded-lg text-[hsl(var(--foreground))] hover:bg-[hsl(var(--foreground)/0.08)] active:scale-[0.97]"
+                  aria-label="Open threads"
+                >
+                  <MenuIcon className="h-4 w-4" />
+                </button>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">
+                    {activeSession?.name ?? "New Thread"}
+                  </p>
+                  {!activeSession || activeSession.repository !== activeSession.name ? (
+                    <p className="truncate text-xs text-[hsl(var(--muted-foreground))]">
+                      {activeSession?.repository ?? "Pick a repository to start chatting"}
+                    </p>
+                  ) : null}
+                </div>
+                <button
+                  onClick={handleNewThread}
+                  className="an-focus-btn flex h-9 w-9 items-center justify-center rounded-lg text-[hsl(var(--foreground))] hover:bg-[hsl(var(--foreground)/0.08)] active:scale-[0.97]"
+                  aria-label="New thread"
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 16 16"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  >
+                    <path d="M8 3.25v9.5" />
+                    <path d="M3.25 8h9.5" />
+                  </svg>
+                </button>
+              </div>
               {error && activeSession ? (
                 <div className="border-b border-[hsl(var(--border))] px-4 py-2 text-sm text-red-600 dark:text-red-400">
                   {error}
@@ -387,7 +457,7 @@ function HomeContent() {
                 {sessions.map((session) => (
                   <div
                     key={session.id}
-                    className={`h-full min-h-0 overflow-hidden ${
+                    className={`h-full min-h-0 w-full overflow-hidden ${
                       session.id === activeSessionId ? "block" : "hidden"
                     }`}
                     aria-hidden={session.id === activeSessionId ? undefined : true}
@@ -412,6 +482,28 @@ function HomeContent() {
                 ) : null}
               </div>
             </div>
+            {isSidebarOpen ? (
+              <div className="fixed inset-0 z-40 md:hidden">
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="absolute inset-0 bg-black/45"
+                  aria-label="Close threads"
+                />
+                <div className="absolute inset-y-0 left-0 w-full max-w-[18rem]">
+                  <ThreadSidebar
+                    threads={sessions}
+                    activeThreadId={activeSessionId}
+                    currentTheme={currentTheme}
+                    onSelectThread={handleSelectThread}
+                    onNewThread={handleNewThread}
+                    onDeleteThread={handleDeleteThread}
+                    onToggleTheme={handleToggleTheme}
+                    className="relative z-10 h-full shadow-2xl"
+                    showHeader={false}
+                  />
+                </div>
+              </div>
+            ) : null}
           </>
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-[hsl(var(--muted)/0.35)] p-6">
@@ -433,7 +525,7 @@ export default function Home() {
   return (
     <Suspense
       fallback={
-        <main className="flex h-screen items-center justify-center bg-[hsl(240_10%_3.9%)] text-[hsl(240_4.8%_95.9%)]">
+        <main className="flex h-[100dvh] items-center justify-center bg-[hsl(240_10%_3.9%)] text-[hsl(240_4.8%_95.9%)]">
           Loading...
         </main>
       }

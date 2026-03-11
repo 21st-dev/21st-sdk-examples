@@ -8,6 +8,8 @@ interface ThreadSidebarProps {
   onNewThread: () => void
   onDeleteThread: (threadId: string) => void
   onToggleTheme: () => void
+  className?: string
+  showHeader?: boolean
 }
 
 function ThemeIcon({ className }: { className?: string }) {
@@ -31,6 +33,23 @@ function ThemeIcon({ className }: { className?: string }) {
   )
 }
 
+function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    >
+      <path d="M4 4l8 8" />
+      <path d="M12 4l-8 8" />
+    </svg>
+  )
+}
+
 export function ThreadSidebar({
   threads,
   activeThreadId,
@@ -39,29 +58,39 @@ export function ThreadSidebar({
   onNewThread,
   onDeleteThread,
   onToggleTheme,
+  className,
+  showHeader = true,
 }: ThreadSidebarProps) {
   return (
-    <aside className="flex h-full min-h-0 w-72 flex-col border-r border-[hsl(var(--border))] bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
-      <div className="border-b border-[hsl(var(--border))] px-2 pb-3 pt-2">
-        <button
-          onClick={onNewThread}
-          className="an-focus-btn flex h-8 w-full items-center justify-center gap-1.5 rounded-lg px-2 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--foreground)/0.08)] active:scale-[0.97]"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 16 16"
-            className="h-3.5 w-3.5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          >
-            <path d="M8 3.25v9.5" />
-            <path d="M3.25 8h9.5" />
-          </svg>
-          <span className="font-medium">New Thread</span>
-        </button>
-      </div>
+    <aside
+      className={`flex h-full min-h-0 w-full max-w-[18rem] flex-col border-r border-[hsl(var(--border))] bg-[hsl(var(--background))] text-[hsl(var(--foreground))] md:w-72 md:max-w-none ${
+        className ?? ""
+      }`}
+    >
+      {showHeader ? (
+        <div className="border-b border-[hsl(var(--border))] px-2 pb-3 pt-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onNewThread}
+              className="an-focus-btn flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--foreground)/0.08)] active:scale-[0.97]"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 16 16"
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              >
+                <path d="M8 3.25v9.5" />
+                <path d="M3.25 8h9.5" />
+              </svg>
+              <span className="font-medium">New Thread</span>
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 pt-3">
         <div className="mb-1 flex h-4 items-center px-2">
           <h3 className="text-xs font-medium text-[hsl(var(--muted-foreground))]">
@@ -90,22 +119,11 @@ export function ThreadSidebar({
                   className={`an-focus-btn shrink-0 leading-none text-[hsl(var(--muted-foreground))] transition-[opacity,transform,color] duration-150 ease-out hover:text-[hsl(var(--foreground))] ${
                     thread.id === activeThreadId
                       ? "opacity-100 scale-100"
-                      : "pointer-events-none scale-95 opacity-0 group-hover:pointer-events-auto group-hover:scale-100 group-hover:opacity-100"
+                      : "opacity-100 scale-100 md:pointer-events-none md:scale-95 md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:scale-100 md:group-hover:opacity-100"
                   }`}
                   aria-label={`Delete ${thread.name || "chat"}`}
                 >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 16 16"
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  >
-                    <path d="M4 4l8 8" />
-                    <path d="M12 4l-8 8" />
-                  </svg>
+                  <CloseIcon className="h-4 w-4" />
                 </button>
               </div>
             </div>
