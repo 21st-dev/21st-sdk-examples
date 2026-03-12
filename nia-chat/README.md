@@ -8,7 +8,7 @@ A Next.js example that lets users chat about GitHub repositories using a deploye
 2. A sandbox + thread is created for the agent (`/api/agent/sandbox`)
 3. The frontend connects to the agent using `createAgentChat` + `useChat` and streams responses
 
-The agent runs inside a sandbox with [Nia skill scripts](agents/nia-agent-v2/template/.claude/skills/nia/) (shell wrappers around the Nia REST API) baked in at deploy time. This gives it the ability to search, read, and explore the indexed repository.
+The agent runs inside a sandbox with [Nia skill scripts](https://docs.trynia.ai/integrations/installation/skill) (shell wrappers around the Nia REST API) baked in at deploy time. This gives it the ability to search, read, and explore the indexed repository.
 
 ## Requirements
 
