@@ -10,6 +10,8 @@ import { NIA_AGENT_NAME } from "./constants"
 import type { ChatSession } from "./types"
 import { ThreadSidebar } from "./components/thread-sidebar"
 import "@21st-sdk/react/styles.css"
+import { AgentSidebar } from "./_components/agent-sidebar"
+import { SetupChecklist } from "./_components/setup-checklist"
 
 const LAST_REPOSITORY_STORAGE_KEY = `${NIA_AGENT_NAME}:last-repository`
 const SESSIONS_STORAGE_KEY = `${NIA_AGENT_NAME}:sessions`
@@ -114,10 +116,12 @@ function ChatPanel({
   repository,
   sandboxId,
   threadId,
+  colorMode,
 }: {
   repository: string
   sandboxId: string
   threadId: string
+  colorMode: "light" | "dark"
 }) {
   const chat = useMemo(
     () =>
@@ -132,15 +136,8 @@ function ChatPanel({
   const { messages, sendMessage, status, stop, error, setMessages } = useChat({
     chat: chat as Chat<UIMessage>,
   })
-  const searchParams = useSearchParams()
   const didHydrateRef = useRef(false)
   const storageKey = getMessagesStorageKey(repository, sandboxId, threadId)
-  const colorMode =
-    searchParams.get("theme") === "dark"
-      ? "dark"
-      : searchParams.get("theme") === "light"
-        ? "light"
-        : "auto"
 
   useEffect(() => {
     if (didHydrateRef.current) return
@@ -205,6 +202,7 @@ function ChatPanel({
         status={status}
         onStop={stop}
         error={error ?? undefined}
+        colorMode={colorMode}
         className="h-full min-h-0 w-full"
       />
     </div>
@@ -222,8 +220,22 @@ function HomeContent() {
   const [isStorageReady, setIsStorageReady] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const currentTheme = searchParams.get("theme") === "light" ? "light" : "dark"
-  const themeClass = currentTheme === "light" ? "" : "dark"
+  const themeParam = searchParams.get("theme")
+  const [colorMode, setColorMode] = useState<"light" | "dark">("dark")
+
+  useEffect(() => {
+    if (themeParam === "light") { setColorMode("light"); return }
+    if (themeParam === "dark") { setColorMode("dark"); return }
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
+    setColorMode(mq.matches ? "dark" : "light")
+    const handler = (e: MediaQueryListEvent) => setColorMode(e.matches ? "dark" : "light")
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [themeParam])
+
+  const currentTheme = colorMode
+  const themeClass = colorMode === "dark" ? "dark" : ""
+  const agentOnline = sessions.length > 0
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) ?? null,
     [activeSessionId, sessions],
@@ -389,10 +401,21 @@ function HomeContent() {
     [repoInput, sessions],
   )
 
+  const niaSidebar = (
+    <AgentSidebar
+      partnerLogo={<span className="text-sm font-medium">Nia</span>}
+      partnerDocsUrl="https://nia.ai"
+      partnerDocsLabel="Nia docs"
+    >
+      <SetupChecklist agentOnline={agentOnline} />
+    </AgentSidebar>
+  )
+
   if (!isStorageReady) {
     return (
-      <div className={themeClass}>
-        <main className="flex h-[100svh] max-h-[100svh] w-full min-h-0 max-w-full overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
+      <div className={`flex flex-col md:flex-row h-[100svh] max-h-[100svh] overflow-hidden ${themeClass}`}>
+        {niaSidebar}
+        <main className="flex flex-1 min-h-0 min-w-0 max-w-full overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
           <InitialLoader />
         </main>
       </div>
@@ -400,8 +423,9 @@ function HomeContent() {
   }
 
   return (
-    <div className={themeClass}>
-      <main className="flex h-[100svh] max-h-[100svh] w-full min-h-0 max-w-full overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
+    <div className={`flex flex-col md:flex-row h-[100svh] max-h-[100svh] overflow-hidden ${themeClass}`}>
+      {niaSidebar}
+      <main className="flex flex-1 min-h-0 min-w-0 max-w-full overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
         {sessions.length > 0 ? (
           <>
             <ThreadSidebar
@@ -470,6 +494,7 @@ function HomeContent() {
                       repository={session.repository}
                       sandboxId={session.sandboxId}
                       threadId={session.threadId}
+                      colorMode={colorMode}
                     />
                   </div>
                 ))}

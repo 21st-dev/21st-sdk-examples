@@ -3,11 +3,13 @@
 import { useChat } from "@ai-sdk/react"
 import { AgentChat, createAgentChat } from "@21st-sdk/nextjs"
 import "@21st-sdk/react/styles.css"
-import { useSearchParams } from "next/navigation"
 import type { Chat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
+import { AgentSidebar } from "./_components/agent-sidebar"
+import { SetupChecklist } from "./_components/setup-checklist"
 
 type FormId = "profile" | "order" | "support"
 
@@ -249,9 +251,11 @@ function asFillFormPart(part: unknown): {
 function FormAgent({
   sandboxId,
   threadId,
+  colorMode,
 }: {
   sandboxId: string
   threadId: string
+  colorMode: "light" | "dark"
 }) {
   const [activeTab, setActiveTab] = useState<FormId>("profile")
   const lastAppliedToolCallId = useRef<string | null>(null)
@@ -267,15 +271,6 @@ function FormAgent({
   )
   const didHydrateRef = useRef(false)
   const storageKey = getMessagesStorageKey(sandboxId, threadId)
-  const searchParams = useSearchParams()
-  const colorMode =
-    searchParams.get("theme") === "dark"
-      ? "dark"
-      : searchParams.get("theme") === "light"
-        ? "light"
-        : "auto"
-  const themeClass = colorMode === "light" ? "" : "dark"
-
   const { register, setValue, getValues } = useForm<FormValues>({
     defaultValues: DEFAULT_VALUES,
   })
@@ -434,8 +429,14 @@ function FormAgent({
     return `[[[SYSTEM NOTE: CURRENTLY USER IS WORKING WITH THE FORM "${activeTab}". YOU MUST PATCH THIS FORM ONLY. IF USER WANTS ANOTHER FORM, ASK THEM TO SWITCH TABS FIRST. CURRENT FORM DATA: ${JSON.stringify(currentFormData)}. FORM SCHEMA AGAIN: ${JSON.stringify(currentFormSchema)}. RETURN A fill_form TOOL CALL WITH MATCHING formId.]]]`
   }
 
+  const agentOnline = !error && messages.length > 0
+
   return (
-    <main className={`h-screen grid grid-cols-[282px_minmax(0,1fr)] bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100 ${themeClass}`}>
+    <div className={`flex flex-col md:flex-row h-screen bg-background text-foreground${colorMode === "dark" ? " dark" : ""}`}>
+      <AgentSidebar>
+        <SetupChecklist agentOnline={agentOnline} />
+      </AgentSidebar>
+      <main className="flex-1 min-w-0 grid grid-cols-[282px_minmax(0,1fr)] overflow-hidden">
       <section className="p-4 overflow-y-auto border-r border-neutral-200 bg-white text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100">
         <div className="mb-5 rounded-full border p-1 border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900">
           <div className="grid grid-cols-3 gap-1">
@@ -577,9 +578,7 @@ function FormAgent({
         )}
       </section>
 
-      <section
-        className={`h-screen min-h-0${colorMode === "dark" ? " dark" : ""}`}
-      >
+      <section className="h-full min-h-0">
         <AgentChat
           messages={displayMessages}
           onSend={(msg) => {
@@ -590,14 +589,30 @@ function FormAgent({
           status={status}
           onStop={stop}
           error={error ?? undefined}
+          colorMode={colorMode}
           className="h-full"
         />
       </section>
-    </main>
+      </main>
+    </div>
   )
 }
 
 function HomeContent() {
+  const searchParams = useSearchParams()
+  const themeParam = searchParams.get("theme")
+  const [colorMode, setColorMode] = useState<"light" | "dark">("dark")
+
+  useEffect(() => {
+    if (themeParam === "light") { setColorMode("light"); return }
+    if (themeParam === "dark") { setColorMode("dark"); return }
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
+    setColorMode(mq.matches ? "dark" : "light")
+    const handler = (e: MediaQueryListEvent) => setColorMode(e.matches ? "dark" : "light")
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [themeParam])
+
   const [sandboxId, setSandboxId] = useState<string | null>(null)
   const [threadId, setThreadId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -673,7 +688,7 @@ function HomeContent() {
     )
   }
 
-  return <FormAgent sandboxId={sandboxId} threadId={threadId} />
+  return <FormAgent sandboxId={sandboxId} threadId={threadId} colorMode={colorMode} />
 }
 
 export default function Home() {

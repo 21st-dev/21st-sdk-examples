@@ -10,6 +10,8 @@ import type { UIMessage } from "ai"
 import type { ThreadItem } from "./types"
 import { ThreadSidebar } from "./components/thread-sidebar"
 import "@21st-sdk/react/styles.css"
+import { AgentSidebar } from "./_components/agent-sidebar"
+import { SetupChecklist } from "./_components/setup-checklist"
 
 function getMessagesStorageKey(sandboxId: string, threadId: string) {
   return `nextjs-chat:messages:${sandboxId}:${threadId}`
@@ -34,10 +36,12 @@ function TestToolRenderer({ name, status, output }: CustomToolRendererProps) {
 function ChatPanel({
   sandboxId,
   threadId,
+  colorMode,
   isActive,
 }: {
   sandboxId: string
   threadId: string
+  colorMode: "light" | "dark"
   isActive: boolean
 }) {
   const chat = useMemo(
@@ -53,15 +57,8 @@ function ChatPanel({
   const { messages, sendMessage, status, stop, error, setMessages } = useChat({
     chat: chat as Chat<UIMessage>,
   })
-  const searchParams = useSearchParams()
   const didHydrateRef = useRef(false)
   const storageKey = getMessagesStorageKey(sandboxId, threadId)
-  const colorMode =
-    searchParams.get("theme") === "dark"
-      ? "dark"
-      : searchParams.get("theme") === "light"
-        ? "light"
-        : "auto"
 
   useEffect(() => {
     if (didHydrateRef.current) return
@@ -99,6 +96,7 @@ function ChatPanel({
         status={status}
         onStop={stop}
         error={error ?? undefined}
+        colorMode={colorMode}
         toolRenderers={{ test: TestToolRenderer }}
       />
     </div>
@@ -112,7 +110,21 @@ function HomeContent() {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const initRef = useRef(false)
-  const themeClass = searchParams.get("theme") === "light" ? "" : "dark"
+  const themeParam = searchParams.get("theme")
+  const [colorMode, setColorMode] = useState<"light" | "dark">("dark")
+
+  useEffect(() => {
+    if (themeParam === "light") { setColorMode("light"); return }
+    if (themeParam === "dark") { setColorMode("dark"); return }
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
+    setColorMode(mq.matches ? "dark" : "light")
+    const handler = (e: MediaQueryListEvent) => setColorMode(e.matches ? "dark" : "light")
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [themeParam])
+
+  const themeClass = colorMode === "dark" ? "dark" : ""
+  const agentOnline = threads.length > 0 && !!sandboxId
 
   // Initialize: create sandbox, fetch threads, select or create first thread
   useEffect(() => {
@@ -221,7 +233,11 @@ function HomeContent() {
   }
 
   return (
-    <main className={`h-screen flex bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100 ${themeClass}`}>
+    <div className={`flex flex-col md:flex-row h-screen bg-background text-foreground ${themeClass}`}>
+      <AgentSidebar>
+        <SetupChecklist agentOnline={agentOnline} />
+      </AgentSidebar>
+      <main className="flex flex-1 min-w-0 bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
       <ThreadSidebar
         threads={threads}
         activeThreadId={activeThreadId}
@@ -235,6 +251,7 @@ function HomeContent() {
               key={thread.id}
               sandboxId={sandboxId}
               threadId={thread.id}
+              colorMode={colorMode}
               isActive={thread.id === activeThreadId}
             />
           ))
@@ -244,7 +261,8 @@ function HomeContent() {
           </div>
         )}
       </div>
-    </main>
+      </main>
+    </div>
   )
 }
 
