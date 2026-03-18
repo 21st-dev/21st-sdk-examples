@@ -10,8 +10,6 @@ import type { UIMessage } from "ai"
 import type { ThreadItem } from "./types"
 import { ThreadSidebar } from "./components/thread-sidebar"
 import "@21st-sdk/react/styles.css"
-import { AgentSidebar } from "./_components/agent-sidebar"
-import { SetupChecklist } from "./_components/setup-checklist"
 
 function getMessagesStorageKey(sandboxId: string, threadId: string) {
   return `nextjs-chat:messages:${sandboxId}:${threadId}`
@@ -124,7 +122,6 @@ function HomeContent() {
   }, [themeParam])
 
   const themeClass = colorMode === "dark" ? "dark" : ""
-  const agentOnline = threads.length > 0 && !!sandboxId
 
   // Initialize: create sandbox, fetch threads, select or create first thread
   useEffect(() => {
@@ -234,9 +231,6 @@ function HomeContent() {
 
   return (
     <div className={`flex flex-col xs:flex-row h-screen bg-background text-foreground ${themeClass}`}>
-      <AgentSidebar>
-        <SetupChecklist agentOnline={agentOnline} />
-      </AgentSidebar>
       <main className="flex flex-1 min-w-0 bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
       <ThreadSidebar
         threads={threads}
