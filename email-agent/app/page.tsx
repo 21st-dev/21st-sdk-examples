@@ -34,7 +34,7 @@ const AgentMailLogo = () => (
 )
 
 function getMessagesStorageKey(sandboxId: string, threadId: string) {
-  return `email-agent:messages:${sandboxId}:${threadId}`
+  return `email-agent:v2:messages:${sandboxId}:${threadId}`
 }
 
 function getErrorMessage(error: Error): string {
@@ -93,7 +93,7 @@ function ChatPanel({
   }, [messages, storageKey])
 
   const starterPrompts = [
-    "Send intro email to founder@acme.com about our AI QA tool.",
+    "Send intro email to 21st-email-agent@agentmail.to about our AI QA tool.",
     "Check the latest 5 inbox messages and summarize replies.",
     "Auto-reply to the latest inbound with a friendly meeting follow-up.",
   ]
@@ -188,16 +188,16 @@ function HomeContent() {
 
     async function init() {
       try {
-        let sbId = localStorage.getItem("agent_sandbox_id")
+        let sbId = localStorage.getItem("agent_sandbox_id_v2")
         if (!sbId) {
           const sbRes = await fetch("/api/agent/sandbox", { method: "POST" })
           if (!sbRes.ok) throw new Error(`Failed to create sandbox: ${sbRes.status}`)
           sbId = (await sbRes.json()).sandboxId
-          localStorage.setItem("agent_sandbox_id", sbId!)
+          localStorage.setItem("agent_sandbox_id_v2", sbId!)
         }
         setSandboxId(sbId)
 
-        let thId = localStorage.getItem("agent_thread_id")
+        let thId = localStorage.getItem("agent_thread_id_v2")
         if (!thId) {
           const thRes = await fetch("/api/agent/threads", {
             method: "POST",
@@ -206,7 +206,7 @@ function HomeContent() {
           })
           if (!thRes.ok) throw new Error(`Failed to create thread: ${thRes.status}`)
           thId = (await thRes.json()).id
-          localStorage.setItem("agent_thread_id", thId!)
+          localStorage.setItem("agent_thread_id_v2", thId!)
         }
         setThreadId(thId)
       } catch (err) {
