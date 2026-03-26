@@ -1,0 +1,24 @@
+{
+  "name": "lead-research-agent",
+  "description": "Research people by email online, qualify leads, and send Slack alerts for interesting prospects",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "deploy": "npx @21st-sdk/cli deploy",
+    "login": "npx @21st-sdk/cli login",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@21st-sdk/agent": "0.0.6",
+    "exa-js": "^2.8.0",
+    "zod": "^3.24"
+  },
+  "devDependencies": {
+    "@21st-sdk/cli": "0.0.15",
+    "@types/node": "^25.3.2",
+    "typescript": "^5.0"
+  }
+}
