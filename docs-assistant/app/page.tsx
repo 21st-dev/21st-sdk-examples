@@ -40,7 +40,7 @@ function DocsChat() {
     [],
   )
 
-  const { messages, handleSubmit, status, stop, error } = useChat({
+  const { messages, sendMessage, status, stop, error } = useChat({
     chat: chat as Chat<UIMessage>,
   })
 
@@ -54,7 +54,7 @@ function DocsChat() {
         <div className="flex-1 h-full">
           <AgentChat
             messages={messages}
-            onSend={() => handleSubmit()}
+            onSend={(msg) => sendMessage({ text: msg.content })}
             status={status}
             onStop={stop}
             error={error ?? undefined}
