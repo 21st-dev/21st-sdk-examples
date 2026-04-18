@@ -1,4 +1,4 @@
-# 21st SDK — SQL Chat
+# 21st SDK - SQL Chat
 
 Build a side-by-side SQL workbench + chat assistant. The agent composes read-only SQL against a demo e-commerce schema; the UI streams the query into an editor and renders results in a table.
 
@@ -6,11 +6,11 @@ Build a side-by-side SQL workbench + chat assistant. The agent composes read-onl
 
 A Next.js app with a schema tree, SQL editor, results table, and an agent chat.
 
-- **Schema tree** — click a table to inspect it (and send a "describe" prompt to the agent)
-- **SQL editor** — agent-authored SQL lands here; user can edit and re-run via the `Run` button
-- **Results table** — rows streamed back from the `run_sql` tool
-- **Read-only guard** — the in-process demo engine rejects any write statement
-- **Schema context injection** — each user message is prefixed with a hidden `[[[SYSTEM NOTE]]]` containing the current schema so the agent never has to guess column names
+- **Schema tree** - click a table to inspect it (and send a "describe" prompt to the agent)
+- **SQL editor** - agent-authored SQL lands here; user can edit and re-run via the `Run` button
+- **Results table** - rows streamed back from the `run_sql` tool
+- **Read-only guard** - the in-process demo engine rejects any write statement
+- **Schema context injection** - each user message is prefixed with a hidden `[[[SYSTEM NOTE]]]` containing the current schema so the agent never has to guess column names
 
 ## Prerequisites
 
@@ -26,8 +26,8 @@ A Next.js app with a schema tree, SQL editor, results table, and an agent chat.
 ## Quick start
 
 ```bash
-git clone <this repo>
-cd sql-chat
+git clone https://github.com/21st-dev/21st-sdk-examples.git
+cd 21st-sdk-examples/sql-chat
 npm install
 npx @21st-sdk/cli login
 npx @21st-sdk/cli deploy
@@ -51,7 +51,7 @@ SELECT COUNT(*) FROM <table> [WHERE ...]
 
 Operators: `= != <> < <= > >= LIKE`. No JOINs, no GROUP BY, no subqueries.
 
-Any statement matching `\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|replace|merge)\b` is rejected — even if the agent somehow emits it. The same engine runs in two places:
+Any statement matching `\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|replace|merge)\b` is rejected - even if the agent somehow emits it. The same engine runs in two places:
 
 - **Inside the agent** (`agents/sql-agent.ts`) when it calls `run_sql`
 - **Server-side** (`app/api/run-sql/route.ts`) when the user clicks Run in the editor
@@ -69,7 +69,7 @@ const withContext = `${note}\n\n${userMessage}`
 
 The prefix is stripped from the UI render so users only see their own words.
 
-### Tool output → UI state
+### Tool output -> UI state
 
 The client watches messages for parts matching `run_sql` tool output, extracts the JSON payload (`{ sql, columns, rows, rowCount }`), and drops it straight into the editor + results table. Each `toolCallId` is applied exactly once.
 
