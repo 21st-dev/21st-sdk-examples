@@ -65,21 +65,106 @@ export const SCHEMA: Record<string, Table> = {
   },
 }
 
-const WRITE_GUARD =
-  /\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|replace|merge)\b/i
-
-function stripStringLiterals(sql: string): string {
-  return sql
-    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
-    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
-    .replace(/`(?:[^`\\]|\\.)*`/g, "``")
-}
-
-export function runSql(sqlRaw: string): QueryResult {
+export function runSql(sqlRaw: string, opts: { allowWrite?: boolean } = {}): QueryResult {
   const sql = sqlRaw.trim().replace(/;+\s*$/, "")
   if (!sql) return { ok: false, sql, error: "Empty query." }
-  if (WRITE_GUARD.test(stripStringLiterals(sql))) {
-    return { ok: false, sql, error: "Write operations are not allowed in this demo engine." }
+
+  // DELETE FROM <table> [WHERE ...]
+  const deleteMatch = sql.match(/^DELETE\s+FROM\s+(\w+)(?:\s+WHERE\s+(.+))?$/i)
+  if (deleteMatch) {
+    if (!opts.allowWrite) return { ok: false, sql, error: "Write mode is disabled." }
+    const [, table, where] = deleteMatch
+    const tbl = SCHEMA[table.toLowerCase()]
+    if (!tbl) return { ok: false, sql, error: `Unknown table: ${table}` }
+    let deleted = 0
+    if (where) {
+      const kept: Row[] = []
+      for (const r of tbl.rows) {
+        const f = filterRows([r], tbl.columns, where)
+        if (!f.ok) return { ok: false, sql, error: f.error }
+        if (f.rows.length === 0) kept.push(r)
+        else deleted++
+      }
+      tbl.rows = kept
+    } else {
+      deleted = tbl.rows.length
+      tbl.rows = []
+    }
+    return { ok: true, sql, columns: tbl.columns, rows: tbl.rows.slice(), rowCount: deleted }
+  }
+
+  // UPDATE <table> SET col=val[, ...] [WHERE ...]
+  const updateMatch = sql.match(/^UPDATE\s+(\w+)\s+SET\s+(.+?)(?:\s+WHERE\s+(.+))?$/i)
+  if (updateMatch) {
+    if (!opts.allowWrite) return { ok: false, sql, error: "Write mode is disabled." }
+    const [, table, setClause, where] = updateMatch
+    const tbl = SCHEMA[table.toLowerCase()]
+    if (!tbl) return { ok: false, sql, error: `Unknown table: ${table}` }
+    const assigns: Array<{ col: string; value: Value }> = []
+    const assignRe = /(\w+)\s*=\s*(?:'([^']*)'|"([^"]*)"|(NULL)|(-?\d+(?:\.\d+)?))/gi
+    let m: RegExpExecArray | null
+    while ((m = assignRe.exec(setClause))) {
+      const [, col, s1, s2, nullTok, numRaw] = m
+      const value: Value =
+        s1 !== undefined ? s1 : s2 !== undefined ? s2 : nullTok ? null : Number(numRaw)
+      assigns.push({ col, value })
+    }
+    if (assigns.length === 0) return { ok: false, sql, error: `Could not parse SET clause: "${setClause}"` }
+    for (const a of assigns) {
+      if (!tbl.columns.includes(a.col)) {
+        return { ok: false, sql, error: `Unknown column in UPDATE: ${a.col}` }
+      }
+    }
+    let updated = 0
+    for (const r of tbl.rows) {
+      let matches = true
+      if (where) {
+        const f = filterRows([r], tbl.columns, where)
+        if (!f.ok) return { ok: false, sql, error: f.error }
+        matches = f.rows.length > 0
+      }
+      if (matches) {
+        for (const a of assigns) r[tbl.columns.indexOf(a.col)] = a.value
+        updated++
+      }
+    }
+    return { ok: true, sql, columns: tbl.columns, rows: tbl.rows.slice(), rowCount: updated }
+  }
+
+  // INSERT INTO <table> [(cols)] VALUES (vals)
+  const insertMatch = sql.match(/^INSERT\s+INTO\s+(\w+)(?:\s*\(([^)]+)\))?\s+VALUES\s*\((.+)\)$/i)
+  if (insertMatch) {
+    if (!opts.allowWrite) return { ok: false, sql, error: "Write mode is disabled." }
+    const [, table, colsRaw, valuesRaw] = insertMatch
+    const tbl = SCHEMA[table.toLowerCase()]
+    if (!tbl) return { ok: false, sql, error: `Unknown table: ${table}` }
+    const cols = colsRaw ? colsRaw.split(",").map((c) => c.trim()) : tbl.columns.slice()
+    for (const c of cols) {
+      if (!tbl.columns.includes(c)) return { ok: false, sql, error: `Unknown column in INSERT: ${c}` }
+    }
+    const values = parseValueList(valuesRaw)
+    if (!values.ok) return { ok: false, sql, error: values.error }
+    if (values.values.length !== cols.length) {
+      return {
+        ok: false,
+        sql,
+        error: `Column count ${cols.length} does not match value count ${values.values.length}.`,
+      }
+    }
+    const newRow: Row = tbl.columns.map(() => null as Value)
+    // auto-id if column named "id" is not provided and is numeric
+    if (!cols.includes("id") && tbl.columns.includes("id")) {
+      const maxId = tbl.rows.reduce((m, r) => {
+        const v = r[tbl.columns.indexOf("id")]
+        return typeof v === "number" && v > m ? v : m
+      }, 0)
+      newRow[tbl.columns.indexOf("id")] = maxId + 1
+    }
+    for (let i = 0; i < cols.length; i++) {
+      newRow[tbl.columns.indexOf(cols[i])] = values.values[i]
+    }
+    tbl.rows.push(newRow)
+    return { ok: true, sql, columns: tbl.columns, rows: tbl.rows.slice(), rowCount: 1 }
   }
 
   const countMatch = sql.match(
@@ -104,7 +189,7 @@ export function runSql(sqlRaw: string): QueryResult {
       ok: false,
       sql,
       error:
-        "Demo engine supports: SELECT <cols|*> FROM <table> [WHERE col <op> value] [ORDER BY col [ASC|DESC]] [LIMIT n], and SELECT COUNT(*) FROM <table>. No JOINs, no GROUP BY.",
+        "Demo engine supports: SELECT, INSERT INTO <t> (cols) VALUES (...), UPDATE <t> SET col=val [WHERE ...], DELETE FROM <t> [WHERE ...]. No JOINs, no GROUP BY.",
     }
   }
 
@@ -192,6 +277,51 @@ function filterRows(rows: Row[], cols: string[], whereRaw: string): FilterResult
     return false
   }
   return { ok: true, rows: rows.filter((r) => test(r[idx])) }
+}
+
+type ValueListResult = { ok: true; values: Value[] } | { ok: false; error: string }
+
+function parseValueList(raw: string): ValueListResult {
+  const out: Value[] = []
+  let i = 0
+  while (i < raw.length) {
+    while (i < raw.length && /\s/.test(raw[i])) i++
+    if (i >= raw.length) break
+    const ch = raw[i]
+    if (ch === "'" || ch === '"') {
+      const q = ch
+      i++
+      let s = ""
+      while (i < raw.length && raw[i] !== q) {
+        if (raw[i] === "\\" && i + 1 < raw.length) {
+          s += raw[i + 1]
+          i += 2
+        } else {
+          s += raw[i]
+          i++
+        }
+      }
+      if (i >= raw.length) return { ok: false, error: "Unterminated string literal" }
+      i++
+      out.push(s)
+    } else if (raw.slice(i, i + 4).toUpperCase() === "NULL") {
+      out.push(null)
+      i += 4
+    } else {
+      let s = ""
+      while (i < raw.length && /[-0-9.eE]/.test(raw[i])) {
+        s += raw[i]
+        i++
+      }
+      if (!s) return { ok: false, error: `Unexpected token near "${raw.slice(i, i + 10)}"` }
+      const n = Number(s)
+      if (Number.isNaN(n)) return { ok: false, error: `Invalid number: ${s}` }
+      out.push(n)
+    }
+    while (i < raw.length && /\s/.test(raw[i])) i++
+    if (raw[i] === ",") i++
+  }
+  return { ok: true, values: out }
 }
 
 export function schemaSummary() {

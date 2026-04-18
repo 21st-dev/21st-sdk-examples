@@ -17,3 +17,22 @@ body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
 }
+
+@keyframes row-flash {
+  0% {
+    background-color: hsl(152 76% 44% / 0.35);
+    box-shadow: inset 2px 0 0 hsl(152 76% 44%);
+  }
+  60% {
+    background-color: hsl(152 76% 44% / 0.15);
+    box-shadow: inset 2px 0 0 hsl(152 76% 44% / 0.5);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: inset 2px 0 0 transparent;
+  }
+}
+
+.row-flash > td {
+  animation: row-flash 2.2s ease-out;
+}

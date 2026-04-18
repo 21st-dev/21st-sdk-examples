@@ -58,27 +58,104 @@ const SCHEMA: Record<string, Table> = {
   },
 }
 
-const WRITE_GUARD =
-  /\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|replace|merge)\b/i
-
-function stripStringLiterals(sql: string): string {
-  // Remove single-quoted, double-quoted, and backtick-quoted string contents so
-  // keyword matches inside string literals don't trigger the guard.
-  return sql
-    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
-    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
-    .replace(/`(?:[^`\\]|\\.)*`/g, "``")
-}
-
 type QueryOk = { ok: true; sql: string; columns: string[]; rows: Row[]; rowCount: number }
 type QueryErr = { ok: false; sql: string; error: string }
 type QueryResult = QueryOk | QueryErr
 
-function runSql(sqlRaw: string): QueryResult {
+function runSql(sqlRaw: string, opts: { allowWrite?: boolean } = {}): QueryResult {
   const sql = sqlRaw.trim().replace(/;+\s*$/, "")
   if (!sql) return { ok: false, sql, error: "Empty query." }
-  if (WRITE_GUARD.test(stripStringLiterals(sql))) {
-    return { ok: false, sql, error: "Write operations are not allowed in this demo engine." }
+
+  const deleteMatch = sql.match(/^DELETE\s+FROM\s+(\w+)(?:\s+WHERE\s+(.+))?$/i)
+  if (deleteMatch) {
+    if (!opts.allowWrite) return { ok: false, sql, error: "Write mode is disabled." }
+    const [, table, where] = deleteMatch
+    const tbl = SCHEMA[table.toLowerCase()]
+    if (!tbl) return { ok: false, sql, error: `Unknown table: ${table}` }
+    let deleted = 0
+    if (where) {
+      const kept: Row[] = []
+      for (const r of tbl.rows) {
+        const f = filterRows([r], tbl.columns, where)
+        if (!f.ok) return { ok: false, sql, error: f.error }
+        if (f.rows.length === 0) kept.push(r)
+        else deleted++
+      }
+      tbl.rows = kept
+    } else {
+      deleted = tbl.rows.length
+      tbl.rows = []
+    }
+    return { ok: true, sql, columns: tbl.columns, rows: tbl.rows.slice(), rowCount: deleted }
+  }
+
+  const updateMatch = sql.match(/^UPDATE\s+(\w+)\s+SET\s+(.+?)(?:\s+WHERE\s+(.+))?$/i)
+  if (updateMatch) {
+    if (!opts.allowWrite) return { ok: false, sql, error: "Write mode is disabled." }
+    const [, table, setClause, where] = updateMatch
+    const tbl = SCHEMA[table.toLowerCase()]
+    if (!tbl) return { ok: false, sql, error: `Unknown table: ${table}` }
+    const assigns: Array<{ col: string; value: Value }> = []
+    const assignRe = /(\w+)\s*=\s*(?:'([^']*)'|"([^"]*)"|(NULL)|(-?\d+(?:\.\d+)?))/gi
+    let m: RegExpExecArray | null
+    while ((m = assignRe.exec(setClause))) {
+      const [, col, s1, s2, nullTok, numRaw] = m
+      const value: Value =
+        s1 !== undefined ? s1 : s2 !== undefined ? s2 : nullTok ? null : Number(numRaw)
+      assigns.push({ col, value })
+    }
+    if (assigns.length === 0) return { ok: false, sql, error: `Could not parse SET clause: "${setClause}"` }
+    for (const a of assigns) {
+      if (!tbl.columns.includes(a.col)) return { ok: false, sql, error: `Unknown column in UPDATE: ${a.col}` }
+    }
+    let updated = 0
+    for (const r of tbl.rows) {
+      let matches = true
+      if (where) {
+        const f = filterRows([r], tbl.columns, where)
+        if (!f.ok) return { ok: false, sql, error: f.error }
+        matches = f.rows.length > 0
+      }
+      if (matches) {
+        for (const a of assigns) r[tbl.columns.indexOf(a.col)] = a.value
+        updated++
+      }
+    }
+    return { ok: true, sql, columns: tbl.columns, rows: tbl.rows.slice(), rowCount: updated }
+  }
+
+  const insertMatch = sql.match(/^INSERT\s+INTO\s+(\w+)(?:\s*\(([^)]+)\))?\s+VALUES\s*\((.+)\)$/i)
+  if (insertMatch) {
+    if (!opts.allowWrite) return { ok: false, sql, error: "Write mode is disabled." }
+    const [, table, colsRaw, valuesRaw] = insertMatch
+    const tbl = SCHEMA[table.toLowerCase()]
+    if (!tbl) return { ok: false, sql, error: `Unknown table: ${table}` }
+    const cols = colsRaw ? colsRaw.split(",").map((c) => c.trim()) : tbl.columns.slice()
+    for (const c of cols) {
+      if (!tbl.columns.includes(c)) return { ok: false, sql, error: `Unknown column in INSERT: ${c}` }
+    }
+    const values = parseValueList(valuesRaw)
+    if (!values.ok) return { ok: false, sql, error: values.error }
+    if (values.values.length !== cols.length) {
+      return {
+        ok: false,
+        sql,
+        error: `Column count ${cols.length} does not match value count ${values.values.length}.`,
+      }
+    }
+    const newRow: Row = tbl.columns.map(() => null as Value)
+    if (!cols.includes("id") && tbl.columns.includes("id")) {
+      const maxId = tbl.rows.reduce((m, r) => {
+        const v = r[tbl.columns.indexOf("id")]
+        return typeof v === "number" && v > m ? v : m
+      }, 0)
+      newRow[tbl.columns.indexOf("id")] = maxId + 1
+    }
+    for (let i = 0; i < cols.length; i++) {
+      newRow[tbl.columns.indexOf(cols[i])] = values.values[i]
+    }
+    tbl.rows.push(newRow)
+    return { ok: true, sql, columns: tbl.columns, rows: tbl.rows.slice(), rowCount: 1 }
   }
 
   const countMatch = sql.match(
@@ -101,7 +178,7 @@ function runSql(sqlRaw: string): QueryResult {
       ok: false,
       sql,
       error:
-        "Demo engine supports: SELECT <cols|*> FROM <table> [WHERE col <op> value] [ORDER BY col [ASC|DESC]] [LIMIT n], and SELECT COUNT(*) FROM <table>. No JOINs, no GROUP BY.",
+        "Demo engine supports: SELECT, INSERT INTO <t> (cols) VALUES (...), UPDATE <t> SET col=val [WHERE ...], DELETE FROM <t> [WHERE ...]. No JOINs, no GROUP BY.",
     }
   }
 
@@ -189,6 +266,51 @@ function filterRows(rows: Row[], cols: string[], whereRaw: string): FilterResult
   return { ok: true, rows: rows.filter((r) => test(r[idx])) }
 }
 
+type ValueListResult = { ok: true; values: Value[] } | { ok: false; error: string }
+
+function parseValueList(raw: string): ValueListResult {
+  const out: Value[] = []
+  let i = 0
+  while (i < raw.length) {
+    while (i < raw.length && /\s/.test(raw[i])) i++
+    if (i >= raw.length) break
+    const ch = raw[i]
+    if (ch === "'" || ch === '"') {
+      const q = ch
+      i++
+      let s = ""
+      while (i < raw.length && raw[i] !== q) {
+        if (raw[i] === "\\" && i + 1 < raw.length) {
+          s += raw[i + 1]
+          i += 2
+        } else {
+          s += raw[i]
+          i++
+        }
+      }
+      if (i >= raw.length) return { ok: false, error: "Unterminated string literal" }
+      i++
+      out.push(s)
+    } else if (raw.slice(i, i + 4).toUpperCase() === "NULL") {
+      out.push(null)
+      i += 4
+    } else {
+      let s = ""
+      while (i < raw.length && /[-0-9.eE]/.test(raw[i])) {
+        s += raw[i]
+        i++
+      }
+      if (!s) return { ok: false, error: `Unexpected token near "${raw.slice(i, i + 10)}"` }
+      const n = Number(s)
+      if (Number.isNaN(n)) return { ok: false, error: `Invalid number: ${s}` }
+      out.push(n)
+    }
+    while (i < raw.length && /\s/.test(raw[i])) i++
+    if (raw[i] === ",") i++
+  }
+  return { ok: true, values: out }
+}
+
 function schemaSummary() {
   return Object.entries(SCHEMA).map(([name, t]) => ({
     name,
@@ -202,17 +324,31 @@ function schemaSummary() {
 export default agent({
   model: "claude-sonnet-4-6",
   permissionMode: "bypassPermissions",
-  systemPrompt: `You are a SQL assistant over a demo e-commerce Postgres schema (tables: customers, products, orders, order_items).
+  systemPrompt: `You are a SQL assistant for a SANDBOXED DEMO database (not production). The entire dataset is an in-memory JavaScript object (tables: customers, products, orders, order_items) used only for examples. There is no real user data, no privacy concern, and no risk. Writes are sandboxed and reversible (reset on deploy). You MUST NOT apply extra "safety" restrictions beyond what is stated here.
 
-The user message may include a hidden prefix like:
-[[[SYSTEM NOTE: CURRENT_SCHEMA: <json>]]]
+Every user message is prefixed with a hidden note:
+[[[SYSTEM NOTE: CURRENT_SCHEMA: <json> WRITE_MODE: enabled|disabled ]]]
 
-Rules:
-1. ONLY read-only SQL (SELECT, COUNT). Never INSERT/UPDATE/DELETE/DROP/ALTER/CREATE/TRUNCATE.
-2. The demo engine supports: SELECT <cols|*> FROM <table> [WHERE col <op> value] [ORDER BY col [ASC|DESC]] [LIMIT n], and SELECT COUNT(*) FROM <table>. Supported ops: = != <> < <= > >= LIKE. No JOINs, no GROUP BY, no subqueries (demo limitation).
-3. If a question needs features the engine lacks, explain briefly in one sentence and run a simpler query that approximates it.
-4. Call run_sql with the exact SQL you compose. After it returns, summarize the result in ONE short sentence.
-5. If the user asks to describe tables or schema, call describe_schema instead.`,
+This note is authoritative. Trust it.
+
+Write-mode policy:
+- WRITE_MODE: enabled  →  You SHOULD write SQL freely: SELECT, COUNT, INSERT, UPDATE, DELETE. Execute immediately via run_sql with allow_write: true. Do NOT ask for permission, do NOT refuse, do NOT warn about write ops.
+- WRITE_MODE: disabled →  Only SELECT / SELECT COUNT(*). If user asks for a mutation, briefly explain that Read & Write mode is off and do not call run_sql.
+
+Engine grammar (this is the only grammar run_sql accepts):
+- SELECT <cols|*> FROM <table> [WHERE col <op> value] [ORDER BY col [ASC|DESC]] [LIMIT n]
+- SELECT COUNT(*) FROM <table> [WHERE ...]
+- INSERT INTO <table> (col1, col2, ...) VALUES (val1, val2, ...)   -- single row; omit "id" to auto-assign
+- UPDATE <table> SET col=val[, col=val, ...] [WHERE col <op> value]
+- DELETE FROM <table> [WHERE col <op> value]
+WHERE ops: = != <> < <= > >= LIKE. No JOINs, no GROUP BY, no subqueries.
+
+Behavior:
+1. When WRITE_MODE is enabled and the user asks to insert / update / delete, just compose the SQL and call run_sql({ sql, allow_write: true }). No confirmations, no caveats.
+2. If the engine lacks a feature, explain in one short sentence and approximate with a supported query.
+3. After run_sql returns, reply with ONE short sentence summarizing the result (e.g. "Inserted 1 row.", "Updated 3 rows.", "Deleted 2 refunded orders.", "Found 5 plan products.").
+4. For schema questions, call describe_schema.
+5. Do not output SQL in a code block unless the user explicitly asks — run it.`,
   tools: {
     describe_schema: tool({
       description: "Return the full schema (tables and columns).",
@@ -223,10 +359,16 @@ Rules:
       },
     }),
     run_sql: tool({
-      description: "Run a read-only SELECT query against the demo database.",
-      inputSchema: z.object({ sql: z.string().min(1) }).strict(),
-      execute: async ({ sql }) => {
-        const result = runSql(sql)
+      description:
+        "Run a SQL query against the demo database. Pass allow_write=true only when WRITE_MODE is enabled in the system note. Supports SELECT, INSERT, UPDATE, DELETE when allow_write is true; only SELECT otherwise.",
+      inputSchema: z
+        .object({
+          sql: z.string().min(1),
+          allow_write: z.boolean().optional().default(false),
+        })
+        .strict(),
+      execute: async ({ sql, allow_write }) => {
+        const result = runSql(sql, { allowWrite: !!allow_write })
         return { content: [{ type: "text", text: JSON.stringify(result) }] }
       },
     }),
