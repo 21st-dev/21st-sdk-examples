@@ -26,8 +26,8 @@ A Next.js app with:
 ## Quick start
 
 ```bash
-git clone <this repo>
-cd sql-chat
+git clone https://github.com/21st-dev/21st-sdk-examples.git
+cd 21st-sdk-examples/sql-chat
 npm install
 npx @21st-sdk/cli login
 npx @21st-sdk/cli deploy
@@ -91,7 +91,7 @@ The toggle is rendered by `@21st-sdk/react`'s `AgentChat` via the `modeSelector`
 />
 ```
 
-### Tool output → UI state
+### Tool output -> UI state
 
 The client watches messages for `run_sql` tool parts, extracts the JSON payload (`{ sql, columns, rows, rowCount }`), and hands it to the table editor. The active tab is auto-derived from the SQL's `FROM <table>` clause, so the grid follows whatever the agent last queried or mutated. Each `toolCallId` is applied exactly once.
 
