@@ -1,17 +1,21 @@
 "use client"
 
-// Tweet attachments — link / video / file preview cards shown under the
-// tweet body, styled to match Twitter's OG/video/file cards.
-
-import { badgeFromFilename } from "@/lib/file-icons"
+// Tweet attachments — video (native-style inline player look) and link
+// (OG card). File attachments aren't supported here because X/Twitter
+// doesn't render native file cards in feeds.
+//
+// VideoCard aesthetic ported from
+//   21st-private-1/apps/web/app/(news)/news/post/[id]/post-detail.tsx
+// (DirectVideoPlayer) — rounded container, centered big play button,
+// progress track + played portion, duration pill bottom-left.
 
 export type Attachment =
   | {
       kind: "video"
-      title: string
+      title?: string
       domain?: string
-      thumbnail?: string   // image URL; if missing, a gradient fallback
-      duration?: string    // "4:32"
+      thumbnail?: string
+      duration?: string
       url?: string
     }
   | {
@@ -19,15 +23,7 @@ export type Attachment =
       title: string
       description?: string
       domain?: string
-      image?: string       // OG image; if missing, a colored letter tile
-      url?: string
-    }
-  | {
-      kind: "file"
-      filename: string
-      size?: string        // "1.2 MB"
-      mime?: string        // "application/pdf"
-      pages?: number
+      image?: string
       url?: string
     }
 
@@ -41,69 +37,100 @@ export function TweetAttachment({ attachment }: Props) {
       return <VideoCard {...attachment} />
     case "link":
       return <LinkCard {...attachment} />
-    case "file":
-      return <FileCard {...attachment} />
   }
 }
 
-// ── Video card: 16:9 thumbnail with play overlay, duration badge, dark footer.
+// News-style inline video preview (mirrors apps/web/news DirectVideoPlayer).
+// When `url` is provided, renders a real <video> that auto-plays muted on
+// mount — same behavior as X's native timeline videos. Falls back to a
+// gradient + centered play button when no url / poster is available.
 function VideoCard({
-  title,
-  domain,
+  url,
   thumbnail,
   duration,
+  domain,
 }: Extract<Attachment, { kind: "video" }>) {
   return (
-    <div className="mt-2 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-black">
-      <div className="relative aspect-video w-full">
-        {thumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumbnail} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        ) : (
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(ellipse at 30% 30%, #4338ca 0%, #0ea5e9 40%, #0b1220 100%)",
-            }}
-          />
-        )}
+    <div className="mt-2 relative overflow-hidden rounded-2xl border border-neutral-200/50 dark:border-white/5 bg-black aspect-video select-none">
+      {url ? (
+        <video
+          src={url}
+          poster={thumbnail}
+          muted
+          autoPlay
+          loop
+          playsInline
+          preload="auto"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : thumbnail ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={thumbnail}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at 30% 30%, #3730a3 0%, #0c4a6e 40%, #0a0a0a 100%)",
+          }}
+        />
+      )}
 
-        {/* vignette */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-transparent" />
-
-        {/* play button */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm ring-1 ring-white/20">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" className="text-white translate-x-[1px]">
+      {/* Centered play button only when we have no real <video> playing */}
+      {!url && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-14 h-14 rounded-full bg-black/55 backdrop-blur-sm flex items-center justify-center">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="text-white translate-x-[1px]"
+            >
               <path d="M8 5v14l11-7z" />
             </svg>
-          </span>
+          </div>
         </div>
+      )}
 
-        {/* duration badge */}
-        {duration && (
-          <span className="absolute right-2 bottom-2 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-medium text-white tabular-nums">
+      {/* Bottom gradient for legibility of overlays */}
+      <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+
+      {/* Time pill bottom-left (shown regardless; matches the news player) */}
+      {duration && (
+        <div
+          className="absolute bottom-2 left-3 flex items-center rounded bg-black/75 backdrop-blur-sm pointer-events-none"
+          style={{ padding: "0.5px 6px", height: 18 }}
+        >
+          <span className="text-[11px] font-mono text-white/90 leading-none">
             {duration}
           </span>
-        )}
-      </div>
-
-      <div className="px-3 py-2 bg-neutral-100 dark:bg-neutral-900">
-        <div className="text-[13px] font-semibold text-neutral-900 dark:text-neutral-100 line-clamp-1">
-          {title}
         </div>
-        {domain && (
-          <div className="text-[11px] text-neutral-500 mt-0.5">
-            From {domain}
-          </div>
-        )}
-      </div>
+      )}
+
+      {/* Domain chip bottom-right — how Twitter labels external sources */}
+      {domain && (
+        <div
+          className="absolute bottom-2 right-3 flex items-center rounded bg-black/50 backdrop-blur-sm pointer-events-none"
+          style={{ padding: "0.5px 6px", height: 18 }}
+        >
+          <span className="text-[11px] text-white/80 leading-none">
+            {domain}
+          </span>
+        </div>
+      )}
     </div>
   )
 }
 
-// ── Link card: horizontal, small thumb + title + description + domain.
+// Horizontal OG link card: small square thumb on the left, title /
+// description / domain on the right. Matches how a shared article renders
+// in the X timeline.
 function LinkCard({
   title,
   description,
@@ -116,7 +143,11 @@ function LinkCard({
       <div className="relative shrink-0 w-[130px] aspect-square bg-neutral-200 dark:bg-neutral-800">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img
+            src={image}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
         ) : (
           <div
             className="absolute inset-0 flex items-center justify-center text-3xl font-bold text-white"
@@ -144,41 +175,3 @@ function LinkCard({
     </div>
   )
 }
-
-// ── File card: icon tile + filename + meta (size, pages).
-function FileCard({
-  filename,
-  size,
-  mime,
-  pages,
-}: Extract<Attachment, { kind: "file" }>) {
-  const badge = badgeFromFilename(filename)
-  return (
-    <div className="mt-2 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 flex items-center gap-3 p-3">
-      <div
-        className="shrink-0 h-12 w-10 rounded flex items-center justify-center text-[10px] font-bold relative"
-        style={{ background: badge.bg, color: badge.fg ?? "#ffffff" }}
-      >
-        <span className="absolute top-1 right-1 h-2 w-2 rounded-sm bg-white/30" />
-        {badge.label}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-medium text-neutral-900 dark:text-neutral-100 truncate">
-          {filename}
-        </div>
-        <div className="text-[11px] text-neutral-500 flex items-center gap-1.5">
-          {size && <span>{size}</span>}
-          {size && pages && <span>·</span>}
-          {pages && <span>{pages} page{pages === 1 ? "" : "s"}</span>}
-          {!size && !pages && mime && <span className="truncate">{mime}</span>}
-        </div>
-      </div>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-neutral-400">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="7 10 12 15 17 10" />
-        <line x1="12" x2="12" y1="15" y2="3" />
-      </svg>
-    </div>
-  )
-}
-

@@ -68,6 +68,7 @@ await sendEmail.enqueue({ to: 'ada@example.com' })`,
       title: "Building Relay from scratch — a TypeScript background job library",
       domain: "youtube.com",
       duration: "4:32",
+      url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
     },
   },
   {
@@ -78,16 +79,6 @@ await sendEmail.enqueue({ to: 'ada@example.com' })`,
       description:
         "The queue is a table. The worker is a loop. Everything else is retries, cron, and priority.",
       domain: "relay.dev/blog",
-    },
-  },
-  {
-    text: "and if you're integrating, here's the full API reference:",
-    attachment: {
-      kind: "file",
-      filename: "relay-api-reference.pdf",
-      size: "842 KB",
-      pages: 24,
-      mime: "application/pdf",
     },
   },
   {
@@ -563,17 +554,17 @@ function HomeContent() {
 
     async function init() {
       try {
-        let sbId = localStorage.getItem("x_thread_sandbox_id_v4")
+        let sbId = localStorage.getItem("x_thread_sandbox_id_v5")
         if (!sbId) {
           const sbRes = await fetch("/api/agent/sandbox", { method: "POST" })
           if (!sbRes.ok) throw new Error(`Failed to create sandbox: ${sbRes.status}`)
           const data = await sbRes.json()
           sbId = data.sandboxId
-          localStorage.setItem("x_thread_sandbox_id_v4", sbId!)
+          localStorage.setItem("x_thread_sandbox_id_v5", sbId!)
         }
         setSandboxId(sbId)
 
-        let thId = localStorage.getItem("x_thread_thread_id_v4")
+        let thId = localStorage.getItem("x_thread_thread_id_v5")
         if (!thId) {
           const thRes = await fetch("/api/agent/threads", {
             method: "POST",
@@ -583,7 +574,7 @@ function HomeContent() {
           if (!thRes.ok) throw new Error(`Failed to create thread: ${thRes.status}`)
           const data = await thRes.json()
           thId = data.id
-          localStorage.setItem("x_thread_thread_id_v4", thId!)
+          localStorage.setItem("x_thread_thread_id_v5", thId!)
         }
         setThreadId(thId)
       } catch (err) {

@@ -4,7 +4,7 @@ import { z } from "zod"
 const attachmentSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("video"),
-    title: z.string().min(1).max(140),
+    title: z.string().min(1).max(140).optional(),
     domain: z.string().max(60).optional(),
     thumbnail: z.string().url().optional(),
     duration: z.string().max(10).optional(),
@@ -16,14 +16,6 @@ const attachmentSchema = z.discriminatedUnion("kind", [
     description: z.string().max(200).optional(),
     domain: z.string().max(60).optional(),
     image: z.string().url().optional(),
-    url: z.string().url().optional(),
-  }),
-  z.object({
-    kind: z.literal("file"),
-    filename: z.string().min(1).max(80),
-    size: z.string().max(20).optional(),
-    mime: z.string().max(80).optional(),
-    pages: z.number().int().positive().max(1000).optional(),
     url: z.string().url().optional(),
   }),
 ])
@@ -72,13 +64,13 @@ Thread rules:
 7. No hashtags unless the user explicitly asks. No emoji spam — at most one per tweet.
 
 Attachments (optional, per tweet):
-- "attachment" can be ONE of three shapes — use it when a preview genuinely helps sell the tweet:
-  - { kind: "video", title, domain?, thumbnail?, duration?, url? } — a YouTube/Loom/Vimeo embed preview.
-  - { kind: "link", title, description?, domain?, image?, url? } — a standard OG link card (article, blog, product page).
-  - { kind: "file", filename, size?, mime?, pages?, url? } — a downloadable file (PDF, zip, xlsx, pptx).
-- One attachment per tweet, and at most 1–2 attachments per whole thread.
-- If the user didn't provide URLs, make the URL optional and invent a plausible domain (e.g. "youtube.com", "relay.dev/docs").
-- Thumbnails are optional; skip if you don't have a real URL. The UI uses a gradient fallback.
+- "attachment" can be ONE of two shapes — use when a preview genuinely helps sell the tweet:
+  - { kind: "video", title?, domain?, thumbnail?, duration?, url? } — inline video player (YouTube / Loom / demo clip).
+  - { kind: "link", title, description?, domain?, image?, url? } — standard OG link card (article, blog, product page).
+- X/Twitter does NOT support file attachments in feeds; do not invent a "file" kind.
+- One attachment per tweet, at most 1–2 per thread.
+- If the user didn't provide URLs, mark URL optional and invent a plausible domain (e.g. "youtube.com", "relay.dev/blog").
+- Thumbnails are optional; skip when you don't have a real one. The UI falls back to a gradient.
 
 Code snippets:
 - If a tweet benefits from a code snippet (library usage, API example, config), attach it via "codeBlock: { lang, code, filename }" on that tweet. NEVER paste triple-backtick fences inside "text" — the UI renders code separately as a ray.so-style card.
