@@ -118,6 +118,367 @@ function SqlLogo() {
   )
 }
 
+const ICON_SEARCH = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+  </svg>
+)
+const ICON_CHART = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3v18h18" /><path d="M7 16V9" /><path d="M12 16v-5" /><path d="M17 16V5" />
+  </svg>
+)
+const ICON_HASH = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="4" x2="20" y1="9" y2="9" /><line x1="4" x2="20" y1="15" y2="15" /><line x1="10" x2="8" y1="3" y2="21" /><line x1="16" x2="14" y1="3" y2="21" />
+  </svg>
+)
+const ICON_BOOK = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+  </svg>
+)
+const ICON_PLUS = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 5v14" /><path d="M5 12h14" />
+  </svg>
+)
+const ICON_PENCIL = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /><path d="m15 5 4 4" />
+  </svg>
+)
+const ICON_TRASH = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+)
+const ICON_DOLLAR = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" x2="12" y1="2" y2="22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+  </svg>
+)
+
+function inferColumnType(rows: Value[][], colIdx: number): string {
+  for (const r of rows) {
+    const v = r[colIdx]
+    if (v == null) continue
+    if (typeof v === "number") return Number.isInteger(v) ? "int8" : "float8"
+    if (typeof v === "boolean") return "bool"
+    if (typeof v === "string") {
+      if (/^\d{4}-\d{2}-\d{2}/.test(v)) return "date"
+      return "text"
+    }
+  }
+  return "text"
+}
+
+function TableEditor({
+  result,
+  activeTable,
+  onSelectTable,
+}: {
+  result: QueryResult | null
+  activeTable: string | null
+  onSelectTable: (name: string) => void
+}) {
+  const [filter, setFilter] = useState("")
+  const [sortCol, setSortCol] = useState<number | null>(null)
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(100)
+  const [tab, setTab] = useState<"definition" | "data">("data")
+  const [flashIds, setFlashIds] = useState<Set<string>>(new Set())
+  const prevIdsRef = useRef<Set<string>>(new Set())
+  const prevTableRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    setPage(1)
+    setFilter("")
+    setSortCol(null)
+  }, [result])
+
+  useEffect(() => {
+    if (!result || !result.ok) {
+      prevIdsRef.current = new Set()
+      prevTableRef.current = null
+      return
+    }
+    const idCol = result.columns.indexOf("id")
+    if (idCol === -1) {
+      prevIdsRef.current = new Set()
+      prevTableRef.current = activeTable
+      return
+    }
+    const currentIds = new Set(result.rows.map((r) => String(r[idCol])))
+    const sameTable = prevTableRef.current === activeTable
+    if (sameTable && prevIdsRef.current.size > 0) {
+      const fresh: string[] = []
+      for (const id of currentIds) if (!prevIdsRef.current.has(id)) fresh.push(id)
+      if (fresh.length > 0 && fresh.length < currentIds.size) {
+        setFlashIds(new Set(fresh))
+        const t = window.setTimeout(() => setFlashIds(new Set()), 2400)
+        prevIdsRef.current = currentIds
+        prevTableRef.current = activeTable
+        return () => window.clearTimeout(t)
+      }
+    }
+    prevIdsRef.current = currentIds
+    prevTableRef.current = activeTable
+  }, [result, activeTable])
+
+  const tableTabs = (
+    <div className="flex shrink-0 items-center gap-0 overflow-x-auto border-b border-neutral-200 bg-neutral-50 px-2 dark:border-neutral-800 dark:bg-neutral-900/50">
+      {Object.keys(SCHEMA).map((name) => {
+        const isActive = activeTable === name
+        return (
+          <button
+            key={name}
+            type="button"
+            onClick={() => onSelectTable(name)}
+            className={`flex h-9 items-center gap-1.5 border-b-2 px-3 text-xs font-mono transition-colors ${
+              isActive
+                ? "border-emerald-500 text-neutral-900 dark:text-white"
+                : "border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+            }`}
+          >
+            {name}
+            <span className="text-[10px] text-neutral-400">{SCHEMA[name].rows.length}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+
+  if (!result) {
+    return (
+      <div className="h-full flex flex-col min-h-0">
+        {tableTabs}
+        <div className="flex-1 flex items-center justify-center text-xs text-neutral-400">
+          Pick a table or ask the assistant.
+        </div>
+      </div>
+    )
+  }
+
+  if (!result.ok) {
+    return (
+      <div className="h-full flex flex-col min-h-0">
+        {tableTabs}
+        <Toolbar filter={filter} onFilter={setFilter} disabled />
+        <div className="flex-1 p-4">
+          <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3 text-xs text-red-700 dark:text-red-400">
+            {result.error}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const columns = result.columns
+  const types = columns.map((_, i) => inferColumnType(result.rows, i))
+
+  const filtered = filter
+    ? result.rows.filter((r) =>
+        r.some((v) => String(v ?? "").toLowerCase().includes(filter.toLowerCase())),
+      )
+    : result.rows
+
+  const sorted = sortCol != null
+    ? [...filtered].sort((a, b) => {
+        const av = a[sortCol]
+        const bv = b[sortCol]
+        const dir = sortDir === "asc" ? 1 : -1
+        if (av === bv) return 0
+        if (av == null) return 1
+        if (bv == null) return -1
+        return av < bv ? -1 * dir : 1 * dir
+      })
+    : filtered
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const pageRows = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  function toggleSort(idx: number) {
+    if (sortCol === idx) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc")
+    } else {
+      setSortCol(idx)
+      setSortDir("asc")
+    }
+  }
+
+  return (
+    <div className="h-full flex flex-col min-h-0">
+      {tableTabs}
+      <Toolbar filter={filter} onFilter={setFilter} />
+
+      {tab === "data" ? (
+        <div className="flex-1 overflow-auto min-h-0">
+          <table className="border-separate border-spacing-0 text-xs font-mono min-w-full">
+            <thead className="sticky top-0 z-10">
+              <tr>
+                {columns.map((c, i) => (
+                  <th
+                    key={c}
+                    className="border-b border-r border-neutral-200 bg-neutral-100 px-3 py-1.5 text-left font-normal dark:border-neutral-800 dark:bg-neutral-900"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(i)}
+                      className="flex items-center gap-1.5 hover:text-neutral-900 dark:hover:text-white"
+                    >
+                      {c === "id" && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500">
+                          <path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" />
+                          <path d="m21 2-9.6 9.6" />
+                          <circle cx="7.5" cy="15.5" r="5.5" />
+                        </svg>
+                      )}
+                      <span className="text-neutral-800 dark:text-neutral-200">{c}</span>
+                      <span className="text-[10px] text-neutral-400">{types[i]}</span>
+                      {sortCol === i && (
+                        <span className="text-neutral-500">{sortDir === "asc" ? "↑" : "↓"}</span>
+                      )}
+                    </button>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pageRows.length === 0 && (
+                <tr>
+                  <td colSpan={columns.length} className="px-3 py-8 text-center text-neutral-400">
+                    No rows
+                  </td>
+                </tr>
+              )}
+              {pageRows.map((row, i) => {
+                const absoluteIdx = (currentPage - 1) * pageSize + i
+                const idColIdx = columns.indexOf("id")
+                const rowId = idColIdx !== -1 ? String(row[idColIdx]) : null
+                const isFlashing = rowId != null && flashIds.has(rowId)
+                return (
+                  <tr
+                    key={rowId ?? absoluteIdx}
+                    className={`${isFlashing ? "row-flash" : "even:bg-neutral-50 dark:even:bg-neutral-900/40"}`}
+                  >
+                    {row.map((v, j) => (
+                      <td
+                        key={j}
+                        className="border-b border-r border-neutral-100 px-3 py-1.5 text-neutral-800 dark:border-neutral-900 dark:text-neutral-200 whitespace-nowrap"
+                      >
+                        {v === null ? (
+                          <span className="text-neutral-400">null</span>
+                        ) : v === "" ? (
+                          <span className="text-neutral-400">empty</span>
+                        ) : (
+                          String(v)
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-auto min-h-0 p-4">
+          <pre className="rounded-md border border-neutral-200 bg-neutral-50 p-3 font-mono text-xs text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 whitespace-pre-wrap break-all">
+            {result.sql}
+          </pre>
+        </div>
+      )}
+
+      <div className="flex min-h-9 items-center gap-4 border-t border-neutral-200 px-3 text-xs dark:border-neutral-800">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            disabled={currentPage <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="flex h-6 w-6 items-center justify-center rounded border border-neutral-300 text-neutral-700 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900"
+            aria-label="Previous page"
+          >
+            ‹
+          </button>
+          <span className="text-neutral-500">Page</span>
+          <input
+            type="number"
+            min={1}
+            max={totalPages}
+            value={currentPage}
+            onChange={(e) => setPage(Math.max(1, Math.min(totalPages, Number(e.target.value) || 1)))}
+            className="h-6 w-10 rounded border border-neutral-300 bg-transparent px-1.5 text-center dark:border-neutral-700"
+          />
+          <span className="text-neutral-500">of {totalPages}</span>
+          <button
+            type="button"
+            disabled={currentPage >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="flex h-6 w-6 items-center justify-center rounded border border-neutral-300 text-neutral-700 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900"
+            aria-label="Next page"
+          >
+            ›
+          </button>
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value))
+              setPage(1)
+            }}
+            className="h-6 rounded border border-neutral-300 bg-transparent px-1.5 dark:border-neutral-700"
+          >
+            {[25, 50, 100, 200].map((n) => (
+              <option key={n} value={n}>{n} rows</option>
+            ))}
+          </select>
+        </div>
+        <span className="text-neutral-500">
+          {sorted.length.toLocaleString()} record{sorted.length === 1 ? "" : "s"}
+        </span>
+
+        <div className="ml-auto relative flex h-7 items-center rounded-md border border-neutral-300 p-[1px] dark:border-neutral-700">
+          <span
+            className="absolute inset-y-[1px] rounded bg-neutral-200 shadow-sm transition-transform dark:bg-neutral-800"
+            style={{ width: "76px", transform: `translateX(${tab === "definition" ? "0" : "76px"})` }}
+          />
+          {(["definition", "data"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={`relative z-10 w-[76px] text-center capitalize ${tab === t ? "text-neutral-900 dark:text-white" : "text-neutral-500"}`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Toolbar({ filter, onFilter, disabled }: { filter: string; onFilter: (v: string) => void; disabled?: boolean }) {
+  return (
+    <div className="shrink-0 flex items-center gap-2 border-b border-neutral-200 px-2 py-1.5 dark:border-neutral-800">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-neutral-400">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+      <input
+        type="text"
+        value={filter}
+        onChange={(e) => onFilter(e.target.value)}
+        placeholder="Filter rows"
+        disabled={disabled}
+        className="w-full bg-transparent text-xs outline-none placeholder:text-neutral-400 disabled:opacity-50"
+      />
+    </div>
+  )
+}
+
 function SqlAgent({
   sandboxId,
   threadId,
@@ -127,11 +488,31 @@ function SqlAgent({
   threadId: string
   colorMode: "light" | "dark"
 }) {
-  const [expandedTable, setExpandedTable] = useState<string | null>("orders")
-  const [editorSql, setEditorSql] = useState("SELECT * FROM orders ORDER BY total_cents DESC LIMIT 5")
-  const [result, setResult] = useState<QueryResult | null>(null)
-  const [isRunning, setIsRunning] = useState(false)
+  const DEFAULT_TABLE = "customers"
+  const defaultTable = SCHEMA[DEFAULT_TABLE]
+  const [result, setResult] = useState<QueryResult | null>({
+    ok: true,
+    sql: `SELECT * FROM ${DEFAULT_TABLE}`,
+    columns: defaultTable.columns,
+    rows: defaultTable.rows.slice(),
+    rowCount: defaultTable.rows.length,
+  })
+  const [activeTable, setActiveTable] = useState<string | null>(DEFAULT_TABLE)
+  const [writeMode, setWriteMode] = useState(false)
   const appliedToolCallIds = useRef<Set<string>>(new Set())
+
+  function selectTable(name: string) {
+    const t = SCHEMA[name]
+    if (!t) return
+    setActiveTable(name)
+    setResult({
+      ok: true,
+      sql: `SELECT * FROM ${name}`,
+      columns: t.columns,
+      rows: t.rows.slice(),
+      rowCount: t.rows.length,
+    })
+  }
 
   const chat = useMemo(
     () =>
@@ -198,8 +579,11 @@ function SqlAgent({
           try {
             const parsed = JSON.parse(payloadText) as QueryResult
             if (parsed && typeof parsed === "object" && "sql" in parsed) {
-              setEditorSql(parsed.sql)
               setResult(parsed)
+              const tableMatch = parsed.sql.match(/FROM\s+(\w+)/i)
+              if (tableMatch && SCHEMA[tableMatch[1].toLowerCase()]) {
+                setActiveTable(tableMatch[1].toLowerCase())
+              }
               appliedToolCallIds.current.add(tp.toolCallId)
             }
           } catch {}
@@ -211,28 +595,11 @@ function SqlAgent({
   }, [messages])
 
   function buildSystemContextPrefix() {
-    return `${SYSTEM_NOTE_PREFIX} CURRENT_SCHEMA: ${JSON.stringify(SCHEMA_PUBLIC)} ${SYSTEM_NOTE_SUFFIX}`
+    return `${SYSTEM_NOTE_PREFIX} CURRENT_SCHEMA: ${JSON.stringify(SCHEMA_PUBLIC)} WRITE_MODE: ${writeMode ? "enabled" : "disabled"} ${SYSTEM_NOTE_SUFFIX}`
   }
 
   function sendWithContext(text: string) {
     sendMessage({ text: `${buildSystemContextPrefix()}\n\n${text}` })
-  }
-
-  async function runEditor() {
-    setIsRunning(true)
-    try {
-      const res = await fetch("/api/run-sql", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sql: editorSql }),
-      })
-      const data = (await res.json()) as QueryResult
-      setResult(data)
-    } catch (err) {
-      setResult({ ok: false, sql: editorSql, error: err instanceof Error ? err.message : "Run failed" })
-    } finally {
-      setIsRunning(false)
-    }
   }
 
   const agentOnline = !error && messages.length > 0
@@ -241,125 +608,48 @@ function SqlAgent({
     <div className={`flex flex-col xs:flex-row h-screen bg-background text-foreground${colorMode === "dark" ? " dark" : ""}`}>
       <AgentSidebar partnerLogo={<span className="flex items-center gap-1.5 text-sm font-medium"><SqlLogo /> SQL Chat</span>}>
         <SetupChecklist agentOnline={agentOnline} />
-        <SidebarSection label="Try">
-          <SidebarPromptButton onClick={() => sendWithContext("Show me the top 5 orders by total_cents, highest first.")}>
+        <SidebarSection label="Read examples">
+          <SidebarPromptButton icon={ICON_CHART} onClick={() => sendWithContext("Show me the top 5 orders by total_cents, highest first.")}>
             Top 5 orders by revenue
           </SidebarPromptButton>
-          <SidebarPromptButton onClick={() => sendWithContext("Which products are in the 'plan' category?")}>
+          <SidebarPromptButton icon={ICON_SEARCH} onClick={() => sendWithContext("Which products are in the 'plan' category?")}>
             Plan products
           </SidebarPromptButton>
-          <SidebarPromptButton onClick={() => sendWithContext("Find orders where notes LIKE '%rush%'.")}>
+          <SidebarPromptButton icon={ICON_SEARCH} onClick={() => sendWithContext("Find orders where notes LIKE '%rush%'.")}>
             Rush orders
           </SidebarPromptButton>
-          <SidebarPromptButton onClick={() => sendWithContext("How many customers do we have?")}>
+          <SidebarPromptButton icon={ICON_HASH} onClick={() => sendWithContext("How many customers do we have?")}>
             Count customers
           </SidebarPromptButton>
-          <SidebarPromptButton onClick={() => sendWithContext("Describe all tables.")}>
+          <SidebarPromptButton icon={ICON_BOOK} onClick={() => sendWithContext("Describe all tables.")}>
             Describe schema
+          </SidebarPromptButton>
+        </SidebarSection>
+
+        <SidebarSection label="Write examples">
+          {!writeMode && (
+            <p className="px-1 pb-1 text-[11px] text-amber-600 dark:text-amber-400/80">
+              Switch to <span className="font-medium">Read &amp; Write</span> in the chat input to run these.
+            </p>
+          )}
+          <SidebarPromptButton icon={ICON_PLUS} onClick={() => sendWithContext("Add a new customer: name 'Mira Okafor', email 'mira@example.com', country 'NG', signup_month '2025-05'.")}>
+            Add a customer
+          </SidebarPromptButton>
+          <SidebarPromptButton icon={ICON_PENCIL} onClick={() => sendWithContext("Update order 5006: set status to 'paid'.")}>
+            Mark order 5006 as paid
+          </SidebarPromptButton>
+          <SidebarPromptButton icon={ICON_TRASH} onClick={() => sendWithContext("Delete all orders where status = 'refunded'.")}>
+            Delete refunded orders
+          </SidebarPromptButton>
+          <SidebarPromptButton icon={ICON_DOLLAR} onClick={() => sendWithContext("Raise Pro Plan price to 3900 cents.")}>
+            Bump Pro Plan price
           </SidebarPromptButton>
         </SidebarSection>
       </AgentSidebar>
 
       <main className="flex-1 min-w-0 grid grid-cols-1 xs:grid-cols-[minmax(0,1fr)_minmax(0,380px)] overflow-hidden">
-        <section className="grid grid-rows-[auto_auto_minmax(0,1fr)] border-r border-neutral-200 bg-white text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 overflow-hidden">
-          <div className="border-b border-neutral-200 dark:border-neutral-800 p-3">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-neutral-500 mb-2">Schema</p>
-            <div className="flex flex-wrap gap-1.5">
-              {Object.entries(SCHEMA).map(([name, t]) => {
-                const open = expandedTable === name
-                return (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => {
-                      if (open) {
-                        setExpandedTable(null)
-                      } else {
-                        setExpandedTable(name)
-                        sendWithContext(`Describe the ${name} table.`)
-                      }
-                    }}
-                    className={`rounded-md border px-2 py-1 text-xs font-mono transition-colors ${
-                      open
-                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                        : "border-neutral-200 bg-neutral-50 text-neutral-700 hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-neutral-700"
-                    }`}
-                  >
-                    {name}
-                    <span className="ml-1.5 text-neutral-400">{t.columns.length}</span>
-                  </button>
-                )
-              })}
-            </div>
-            {expandedTable && SCHEMA[expandedTable] && (
-              <div className="mt-2 flex flex-wrap gap-1 font-mono text-[11px] text-neutral-500">
-                {SCHEMA[expandedTable].columns.map((c) => (
-                  <span key={c} className="rounded bg-neutral-100 px-1.5 py-0.5 dark:bg-neutral-900">
-                    {c}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="border-b border-neutral-200 dark:border-neutral-800 p-3">
-            <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[10px] font-medium uppercase tracking-widest text-neutral-500">SQL</p>
-              <button
-                type="button"
-                onClick={runEditor}
-                disabled={isRunning}
-                className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-medium text-white hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
-              >
-                {isRunning ? "Running…" : "Run"}
-              </button>
-            </div>
-            <textarea
-              value={editorSql}
-              onChange={(e) => setEditorSql(e.target.value)}
-              rows={3}
-              spellCheck={false}
-              className="w-full resize-none rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 font-mono text-[13px] text-neutral-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"
-            />
-          </div>
-
-          <div className="min-h-0 overflow-auto p-3">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-neutral-500 mb-2">
-              Results {result?.ok ? `· ${result.rowCount} row${result.rowCount === 1 ? "" : "s"}` : ""}
-            </p>
-            {!result && (
-              <p className="text-xs text-neutral-400">Run a query or ask the assistant.</p>
-            )}
-            {result && !result.ok && (
-              <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3 text-xs text-red-700 dark:text-red-400">
-                {result.error}
-              </div>
-            )}
-            {result?.ok && (
-              <table className="w-full border-collapse font-mono text-xs">
-                <thead>
-                  <tr className="border-b border-neutral-200 dark:border-neutral-800">
-                    {result.columns.map((c) => (
-                      <th key={c} className="px-2 py-1.5 text-left font-medium text-neutral-500">
-                        {c}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.rows.map((row, i) => (
-                    <tr key={i} className="border-b border-neutral-100 dark:border-neutral-900">
-                      {row.map((v: Value, j) => (
-                        <td key={j} className="px-2 py-1.5 text-neutral-800 dark:text-neutral-200">
-                          {v === null ? <span className="text-neutral-400">null</span> : String(v)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+        <section className="border-r border-neutral-200 bg-white text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 overflow-hidden min-h-0">
+          <TableEditor result={result} activeTable={activeTable} onSelectTable={selectTable} />
         </section>
 
         <section className="h-full min-h-0 hidden xs:block">
@@ -370,6 +660,19 @@ function SqlAgent({
             onStop={stop}
             error={error ?? undefined}
             colorMode={colorMode}
+            theme={{
+              theme: { "--an-mode-selector-position": "inline" },
+              light: {},
+              dark: {},
+            }}
+            modeSelector={{
+              modes: [
+                { id: "read", label: "Read-only" },
+                { id: "write", label: "Read & Write" },
+              ],
+              activeMode: writeMode ? "write" : "read",
+              onModeChange: (id) => setWriteMode(id === "write"),
+            }}
             className="h-full"
           />
         </section>
@@ -404,17 +707,17 @@ function HomeContent() {
 
     async function init() {
       try {
-        let sbId = localStorage.getItem("sql_chat_sandbox_id")
+        let sbId = localStorage.getItem("sql_chat_sandbox_id_v4")
         if (!sbId) {
           const sbRes = await fetch("/api/agent/sandbox", { method: "POST" })
           if (!sbRes.ok) throw new Error(`Failed to create sandbox: ${sbRes.status}`)
           const data = await sbRes.json()
           sbId = data.sandboxId
-          localStorage.setItem("sql_chat_sandbox_id", sbId!)
+          localStorage.setItem("sql_chat_sandbox_id_v4", sbId!)
         }
         setSandboxId(sbId)
 
-        let thId = localStorage.getItem("sql_chat_thread_id")
+        let thId = localStorage.getItem("sql_chat_thread_id_v4")
         if (!thId) {
           const thRes = await fetch("/api/agent/threads", {
             method: "POST",
@@ -424,7 +727,7 @@ function HomeContent() {
           if (!thRes.ok) throw new Error(`Failed to create thread: ${thRes.status}`)
           const data = await thRes.json()
           thId = data.id
-          localStorage.setItem("sql_chat_thread_id", thId!)
+          localStorage.setItem("sql_chat_thread_id_v4", thId!)
         }
         setThreadId(thId)
       } catch (err) {
