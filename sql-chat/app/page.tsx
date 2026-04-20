@@ -707,17 +707,17 @@ function HomeContent() {
 
     async function init() {
       try {
-        let sbId = localStorage.getItem("sql_chat_sandbox_id_v3")
+        let sbId = localStorage.getItem("sql_chat_sandbox_id_v4")
         if (!sbId) {
           const sbRes = await fetch("/api/agent/sandbox", { method: "POST" })
           if (!sbRes.ok) throw new Error(`Failed to create sandbox: ${sbRes.status}`)
           const data = await sbRes.json()
           sbId = data.sandboxId
-          localStorage.setItem("sql_chat_sandbox_id_v3", sbId!)
+          localStorage.setItem("sql_chat_sandbox_id_v4", sbId!)
         }
         setSandboxId(sbId)
 
-        let thId = localStorage.getItem("sql_chat_thread_id_v3")
+        let thId = localStorage.getItem("sql_chat_thread_id_v4")
         if (!thId) {
           const thRes = await fetch("/api/agent/threads", {
             method: "POST",
@@ -727,7 +727,7 @@ function HomeContent() {
           if (!thRes.ok) throw new Error(`Failed to create thread: ${thRes.status}`)
           const data = await thRes.json()
           thId = data.id
-          localStorage.setItem("sql_chat_thread_id_v3", thId!)
+          localStorage.setItem("sql_chat_thread_id_v4", thId!)
         }
         setThreadId(thId)
       } catch (err) {
