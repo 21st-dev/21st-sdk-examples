@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 
 interface EnvStatus {
   apiKey: boolean
@@ -55,6 +56,7 @@ const steps = [
 ]
 
 export function SetupChecklist({ agentOnline }: SetupChecklistProps) {
+  const searchParams = useSearchParams()
   const [status, setStatus] = useState<EnvStatus | null>(null)
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export function SetupChecklist({ agentOnline }: SetupChecklistProps) {
       .catch(() => {})
   }, [])
 
+  if (searchParams.get("setup") === "false") return null
   if (!status) return null
 
   const stepsDone = {
