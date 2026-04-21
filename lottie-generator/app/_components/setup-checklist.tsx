@@ -1,12 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
 
 interface EnvStatus {
   apiKey: boolean
-  agentmailKey: boolean
-  agentmailInbox: boolean
 }
 
 interface SetupChecklistProps {
@@ -33,20 +30,6 @@ const steps = [
     env: "apiKey" as keyof EnvStatus,
   },
   {
-    id: "agentmail_key",
-    label: "Set AGENTMAIL_API_KEY",
-    hint: "Get it at agentmail.to",
-    hintUrl: "https://agentmail.to",
-    env: "agentmailKey" as keyof EnvStatus,
-  },
-  {
-    id: "agentmail_inbox",
-    label: "Set AGENTMAIL_INBOX_ID",
-    hint: "Your inbox, e.g. you@agentmail.to",
-    hintUrl: null,
-    env: "agentmailInbox" as keyof EnvStatus,
-  },
-  {
     id: "deploy",
     label: "Deploy the agent",
     hint: "Run: npx 21st deploy",
@@ -56,7 +39,6 @@ const steps = [
 ]
 
 export function SetupChecklist({ agentOnline }: SetupChecklistProps) {
-  const searchParams = useSearchParams()
   const [status, setStatus] = useState<EnvStatus | null>(null)
 
   useEffect(() => {
@@ -66,13 +48,10 @@ export function SetupChecklist({ agentOnline }: SetupChecklistProps) {
       .catch(() => {})
   }, [])
 
-  if (searchParams.get("setup") === "false") return null
   if (!status) return null
 
   const stepsDone = {
     apiKey: status.apiKey,
-    agentmailKey: status.agentmailKey,
-    agentmailInbox: status.agentmailInbox,
     deploy: agentOnline,
   }
 
