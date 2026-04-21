@@ -6,6 +6,7 @@ dist
 .an/
 .turbo
 .vercel
+.claude/
 *.tsbuildinfo
 .DS_Store
 __pycache__/
