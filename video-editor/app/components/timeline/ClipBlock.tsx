@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { forwardRef, useEffect, useRef, useState, type HTMLAttributes } from "react"
 import type { Asset, Clip, Track } from "../../lib/project"
 import { maxClipLength } from "../../lib/project"
 import { setDragPayload } from "../../lib/dnd"
@@ -14,7 +14,17 @@ import {
 
 type DragMode = "move" | "trim-left" | "trim-right"
 
-export interface ClipBlockProps {
+/**
+ * Pass-through props forwarded onto the root `<div>`. Radix `asChild` (and
+ * any future wrapper that needs to attach listeners / refs) relies on these
+ * — without them the trigger has no element to instrument.
+ */
+type RootProps = Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "onPointerDown" | "onClick" | "onChange" | "onDragStart" | "style" | "className"
+>
+
+export interface ClipBlockProps extends RootProps {
   clip: Clip
   asset: Asset | undefined
   tracks: Track[]
@@ -41,16 +51,20 @@ const KIND_CLASSES: Record<string, string> = {
   audio: "bg-emerald-500/25 border-emerald-400/60 hover:bg-emerald-500/30",
 }
 
-export function ClipBlock({
-  clip,
-  asset,
-  tracks,
-  geom,
-  selected,
-  onSelect,
-  onChange,
-  onDragStart,
-}: ClipBlockProps) {
+export const ClipBlock = forwardRef<HTMLDivElement, ClipBlockProps>(function ClipBlock(
+  {
+    clip,
+    asset,
+    tracks,
+    geom,
+    selected,
+    onSelect,
+    onChange,
+    onDragStart,
+    ...rootProps
+  },
+  ref,
+) {
   const [dragMode, setDragMode] = useState<DragMode | null>(null)
   const dragRef = useRef<{
     mode: DragMode
@@ -82,9 +96,9 @@ export function ClipBlock({
             Math.min(tracks.length - 1, originIdx + offsetRows),
           )
           const targetTrack = tracks[targetIdx]!
-          // Forbid moving audio asset onto video track and vice-versa — simple
-          // guard; the reducer would accept it but ffmpeg wouldn't do the right
-          // thing with an audio file on a video track.
+          // Forbid moving audio asset onto video track and vice-versa. The
+          // reducer would accept it, but ffmpeg wouldn't do the right thing
+          // with an audio file on a video track.
           const kind = asset?.kind
           const allowed =
             !kind ||
@@ -131,9 +145,18 @@ export function ClipBlock({
   }, [dragMode, asset, geom, onChange, tracks])
 
   function startDrag(mode: DragMode, ev: React.PointerEvent) {
+    // Only the primary (left) button drags; right-click opens the context menu.
+    if (ev.button !== 0) return
     ev.preventDefault()
     ev.stopPropagation()
-    ;(ev.target as HTMLElement).setPointerCapture?.(ev.pointerId)
+    // `setPointerCapture` throws `NotFoundError` if the pointer isn't active
+    // (e.g. synthetic events, already-released pointers). It's a
+    // nice-to-have, so swallow the error rather than aborting the drag.
+    try {
+      ;(ev.target as HTMLElement).setPointerCapture?.(ev.pointerId)
+    } catch {
+      /* ignore */
+    }
     dragRef.current = {
       mode,
       originClientX: ev.clientX,
@@ -158,6 +181,8 @@ export function ClipBlock({
 
   return (
     <div
+      {...rootProps}
+      ref={ref}
       className={`group absolute top-1 bottom-1 rounded-md border transition-colors ${colorCls} ${
         selected ? "ring-2 ring-white/80" : "ring-0"
       } ${dragMode ? "cursor-grabbing" : "cursor-grab"}`}
@@ -201,4 +226,4 @@ export function ClipBlock({
       />
     </div>
   )
-}
+})

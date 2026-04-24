@@ -8,6 +8,15 @@ export interface ShortcutMap {
   [combo: string]: ShortcutHandler
 }
 
+export interface ShortcutOptions {
+  enabled?: boolean
+  /**
+   * Combos that fire even when focus is inside an input/textarea/contentEditable.
+   * Use sparingly; typical candidates are project-level undo/redo.
+   */
+  global?: string[]
+}
+
 /**
  * Keyboard-shortcut dispatcher.
  *
@@ -15,33 +24,25 @@ export interface ShortcutMap {
  * - Matches on `e.key` (case-insensitive for letters).
  * - `Cmd` and `Meta` are aliases; on Mac this is ⌘, on Windows/Linux this is Ctrl (we accept both).
  * - Handlers may return `true` to skip `preventDefault` (e.g. to still insert space into an input).
- * - Shortcuts are disabled while focus is inside `<input>`, `<textarea>`, `[contenteditable]`, or
- *   when the target has data-allow-typing="true".
+ * - By default shortcuts are disabled while focus is inside `<input>`, `<textarea>`,
+ *   `[contenteditable]`, or on an element with `data-allow-typing="true"`.
+ * - Combos listed in `options.global` bypass that filter and always fire.
  */
-export function useShortcuts(map: ShortcutMap, enabled = true) {
+export function useShortcuts(map: ShortcutMap, options: ShortcutOptions = {}) {
+  const { enabled = true, global: globalCombos = [] } = options
   const mapRef = useRef(map)
+  const globalRef = useRef<Set<string>>(new Set(globalCombos))
   useEffect(() => {
     mapRef.current = map
   }, [map])
+  useEffect(() => {
+    globalRef.current = new Set(globalCombos)
+  }, [globalCombos])
 
   useEffect(() => {
     if (!enabled) return
 
     function onKey(e: KeyboardEvent) {
-      const target = e.target as HTMLElement | null
-      if (target) {
-        const tag = target.tagName
-        if (
-          tag === "INPUT" ||
-          tag === "TEXTAREA" ||
-          tag === "SELECT" ||
-          target.isContentEditable ||
-          target.getAttribute?.("data-allow-typing") === "true"
-        ) {
-          return
-        }
-      }
-
       const parts: string[] = []
       if (e.metaKey || e.ctrlKey) parts.push("Cmd")
       if (e.shiftKey) parts.push("Shift")
@@ -56,6 +57,24 @@ export function useShortcuts(map: ShortcutMap, enabled = true) {
 
       const handler = mapRef.current[combo]
       if (!handler) return
+
+      const isGlobal = globalRef.current.has(combo)
+      if (!isGlobal) {
+        const target = e.target as HTMLElement | null
+        if (target) {
+          const tag = target.tagName
+          if (
+            tag === "INPUT" ||
+            tag === "TEXTAREA" ||
+            tag === "SELECT" ||
+            target.isContentEditable ||
+            target.getAttribute?.("data-allow-typing") === "true"
+          ) {
+            return
+          }
+        }
+      }
+
       const skip = handler(e)
       if (!skip) {
         e.preventDefault()

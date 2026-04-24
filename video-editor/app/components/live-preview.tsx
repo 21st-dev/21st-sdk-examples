@@ -4,7 +4,7 @@
  * Live scrub preview.
  *
  * Plays the timeline directly in the browser using HTML5 `<video>` / `<audio>`
- * elements keyed off the current playhead — no round-trip to ffmpeg for
+ * elements keyed off the current playhead, with no round-trip to ffmpeg for
  * iteration. The agent's `render_project` is only needed when the user wants
  * a final exported MP4.
  *
@@ -13,11 +13,11 @@
  *    the rendered preview after an explicit Render.
  *  - Audio mix: we play one <audio> per audio track at the clip that covers
  *    the playhead, with its `volume` from the project. No cross-fades.
- *  - Text overlays / drawtext / filters are a visual indicator only — they
+ *  - Text overlays / drawtext / filters are a visual indicator only; they
  *    show as a caption box, but the final rendered version is the ffmpeg one.
  */
 
-import { ChevronsRight, Pause, Play, SkipBack } from "lucide-react"
+import { ChevronsRight, Pause, Play, Redo2, SkipBack, Undo2 } from "lucide-react"
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { Button, IconButton } from "./ui"
 import {
@@ -27,9 +27,10 @@ import {
   getAsset,
   projectDuration,
 } from "../lib/project"
+import type { RenderStatus, RenderUpload } from "../lib/render"
 import { formatTimestamp } from "../lib/timeline-geom"
 
-export type RenderStatus = "idle" | "rendering" | "done" | "error"
+export type { RenderStatus } from "../lib/render"
 
 export interface LivePreviewHandle {
   seek: (seconds: number) => void
@@ -45,22 +46,43 @@ interface LivePreviewProps {
   playhead: number
   /** Parent-owned setter the preview calls during playback. */
   onPlayhead: (seconds: number) => void
+  /** The track owning the currently selected clip. If set, its clip at the
+   * playhead wins compositing even against higher tracks — so the user always
+   * sees what they are editing. */
+  selectedTrackId?: string | null
   /** When the render URL is set, the player can show the actual MP4 instead of scrub mode. */
   renderedUrl: string | null
   renderStatus: RenderStatus
   renderError?: string | null
-  lastUpload?: { backend: string; bytes: number; elapsedMs: number } | null
+  lastUpload?: RenderUpload | null
   onRender?: (preview: boolean) => void
   renderBusy: boolean
+  onUndo?: () => void
+  onRedo?: () => void
+  canUndo?: boolean
+  canRedo?: boolean
 }
 
-function findActiveClip(project: Project, kind: "video" | "audio", t: number): Clip | null {
-  const tracks = project.tracks.filter((tr) => tr.kind === kind)
-  // Walk top → bottom so overlays would win; right now only one video layer
-  // is drawn, so iteration order is immaterial.
-  for (let i = tracks.length - 1; i >= 0; i--) {
-    const clips = clipsOnTrack(project, tracks[i]!.id)
-    for (const c of clips) {
+function findActiveClip(
+  project: Project,
+  kind: "video" | "audio",
+  t: number,
+  priorityTrackId?: string | null,
+): Clip | null {
+  // Walk top to bottom and return the first hit so the uppermost track wins
+  // (standard Premiere/DaVinci compositing). When the user has a clip
+  // selected, pin that track to the front — they always see what they are
+  // editing even if a higher track covers the playhead.
+  const filtered = project.tracks.filter((tr) => tr.kind === kind)
+  const ordered =
+    priorityTrackId && filtered.some((t) => t.id === priorityTrackId)
+      ? [
+          ...filtered.filter((t) => t.id === priorityTrackId),
+          ...filtered.filter((t) => t.id !== priorityTrackId),
+        ]
+      : filtered
+  for (const track of ordered) {
+    for (const c of clipsOnTrack(project, track.id)) {
       if (t >= c.start && t < c.start + c.length) return c
     }
   }
@@ -69,7 +91,7 @@ function findActiveClip(project: Project, kind: "video" | "audio", t: number): C
 
 export const LivePreview = forwardRef<LivePreviewHandle, LivePreviewProps>(
   function LivePreview(
-    { project, playhead, onPlayhead, renderedUrl, renderStatus, renderError, lastUpload, onRender, renderBusy },
+    { project, playhead, onPlayhead, selectedTrackId, renderedUrl, renderStatus, renderError, lastUpload, onRender, renderBusy, onUndo, onRedo, canUndo, canRedo },
     ref,
   ) {
     const [mode, setMode] = useState<"live" | "rendered">("live")
@@ -104,8 +126,12 @@ export const LivePreview = forwardRef<LivePreviewHandle, LivePreviewProps>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project])
 
-    // Active clip (topmost video OR image on any video track).
-    const activeVideoClip = useMemo(() => findActiveClip(project, "video", playhead), [project, playhead])
+    // Active clip (topmost video/image on any video track; the selected
+    // clip's track wins ties).
+    const activeVideoClip = useMemo(
+      () => findActiveClip(project, "video", playhead, selectedTrackId),
+      [project, playhead, selectedTrackId],
+    )
     const activeAudioClips = useMemo(() => {
       const result: Array<{ clip: Clip; trackId: string }> = []
       for (const track of project.tracks) {
@@ -305,7 +331,7 @@ export const LivePreview = forwardRef<LivePreviewHandle, LivePreviewProps>(
           </div>
         </div>
 
-        {/* Hidden audio players — one per active audio clip */}
+        {/* Hidden audio players. one per active audio clip */}
         {!showRendered &&
           activeAudioClips.map(({ clip }) => {
             const asset = getAsset(project, clip.assetId)
@@ -375,29 +401,40 @@ export const LivePreview = forwardRef<LivePreviewHandle, LivePreviewProps>(
             </span>
           )}
 
+          {onUndo && (
+            <IconButton
+              size="sm"
+              icon={<Undo2 size={13} />}
+              onClick={onUndo}
+              disabled={!canUndo}
+              title="Undo"
+              shortcut="Cmd+Z"
+              aria-label="Undo"
+            />
+          )}
+          {onRedo && (
+            <IconButton
+              size="sm"
+              icon={<Redo2 size={13} />}
+              onClick={onRedo}
+              disabled={!canRedo}
+              title="Redo"
+              shortcut="Cmd+Shift+Z"
+              aria-label="Redo"
+            />
+          )}
+
           {onRender && (
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => onRender(true)}
-                disabled={renderBusy || duration === 0}
-                title="Render a fast draft preview"
-                shortcut="Cmd+P"
-              >
-                Draft
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => onRender(false)}
-                disabled={renderBusy || duration === 0}
-                title="Export a final-quality MP4"
-                shortcut="Cmd+Enter"
-              >
-                Export
-              </Button>
-            </>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onRender(true)}
+              disabled={renderBusy || duration === 0}
+              title="Render a fast draft preview"
+              shortcut="Cmd+P"
+            >
+              Draft
+            </Button>
           )}
 
           {renderedUrl && (

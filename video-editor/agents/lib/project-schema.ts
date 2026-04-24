@@ -128,6 +128,11 @@ export const opSchema = z.discriminatedUnion("op", [
     label: z.string().optional(),
   }),
   z.object({ op: z.literal("remove_track"), trackId: z.string() }),
+  z.object({
+    op: z.literal("move_track"),
+    trackId: z.string(),
+    toIndex: z.number().int().min(0),
+  }),
   z.object({ op: z.literal("clear_timeline") }),
 ])
 

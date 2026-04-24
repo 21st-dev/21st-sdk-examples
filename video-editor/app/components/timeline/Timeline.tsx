@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { GripVertical, Music2, Video } from "lucide-react"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import {
   type Project,
   type Track,
@@ -17,10 +18,25 @@ import {
   snap,
 } from "../../lib/timeline-geom"
 import { hasDragPayload, peekDragKind, readDragPayload } from "../../lib/dnd"
-import { IconButton } from "../ui"
+import type { Clip } from "../../lib/project"
+import { ClipInspectorFields } from "../clip-inspector-bar"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuTrigger,
+  IconButton,
+  formatShortcut,
+} from "../ui"
 import { ClipBlock } from "./ClipBlock"
 import { Playhead } from "./Playhead"
 import { Ruler } from "./Ruler"
+
+/** Minimum distance from clip edges for a split to be meaningful. Mirrors
+ * the guard inside `applyOp("split_clip")` so the UI button stays in sync. */
+const SPLIT_MIN_OFFSET = 0.05
 
 interface TimelineProps {
   project: Project
@@ -37,7 +53,23 @@ interface TimelineProps {
   zoomIdx: number
   onChangeZoomIdx: (next: number) => void
   onRemoveTrack?: (trackId: UUID) => void
+  onReorderTrack?: (trackId: UUID, toIndex: number) => void
   onAddTrack?: (kind: "video" | "audio") => void
+  onSplitClip?: (clipId: UUID) => void
+  onDuplicateClip?: (clipId: UUID) => void
+  onDeleteClip?: (clipId: UUID) => void
+  /** Inspector-style patch (may include volume, textOverlay), applied without
+   * the drag no-overlap clamp. */
+  onInspectorPatch?: (
+    clipId: UUID,
+    patch: {
+      trimIn?: number
+      length?: number
+      start?: number
+      volume?: number
+      textOverlay?: Clip["textOverlay"] | null
+    },
+  ) => void
 }
 
 export const ZOOM_STEPS = [20, 40, 80, 120, 180, 260, 400]
@@ -56,7 +88,12 @@ export function Timeline({
   zoomIdx,
   onChangeZoomIdx,
   onRemoveTrack,
+  onReorderTrack,
   onAddTrack,
+  onSplitClip,
+  onDuplicateClip,
+  onDeleteClip,
+  onInspectorPatch,
 }: TimelineProps) {
   const geom: TimelineGeom = useMemo(
     () => ({ ...DEFAULT_GEOM, pxPerSec: ZOOM_STEPS[zoomIdx]! }),
@@ -70,7 +107,43 @@ export function Timeline({
     | null
   >(null)
 
+  const [trackDrag, setTrackDrag] = useState<
+    | { trackId: UUID; originIndex: number; targetIndex: number }
+    | null
+  >(null)
+
   const canvasRef = useRef<HTMLDivElement | null>(null)
+
+  // Trackpad pinch and Cmd/Ctrl + wheel zoom the timeline. React's onWheel
+  // is passive, so preventDefault inside it is a no-op — we attach natively
+  // with `passive: false` so we can block the browser's page-zoom behaviour.
+  // A small deltaY accumulator prevents a single flick from stepping through
+  // the entire zoom range at once on high-resolution trackpads.
+  const zoomIdxRef = useRef(zoomIdx)
+  zoomIdxRef.current = zoomIdx
+  useEffect(() => {
+    const el = canvasRef.current
+    if (!el) return
+    let acc = 0
+    const WHEEL_STEP = 40 // pixels of wheel delta per zoom step
+    function onWheel(e: WheelEvent) {
+      // Browsers report trackpad pinch as a wheel event with ctrlKey set;
+      // Cmd/Ctrl + wheel is the conventional explicit gesture.
+      if (!e.ctrlKey && !e.metaKey) return
+      e.preventDefault()
+      acc += e.deltaY
+      while (Math.abs(acc) >= WHEEL_STEP) {
+        const direction = acc > 0 ? -1 : 1 // deltaY > 0 = pinch out / scroll down → zoom out
+        acc -= Math.sign(acc) * WHEEL_STEP
+        const current = zoomIdxRef.current
+        const next = Math.max(MIN_ZOOM_IDX, Math.min(MAX_ZOOM_IDX, current + direction))
+        if (next === current) break
+        onChangeZoomIdx(next)
+      }
+    }
+    el.addEventListener("wheel", onWheel, { passive: false })
+    return () => el.removeEventListener("wheel", onWheel)
+  }, [onChangeZoomIdx])
 
   function handleTrackDrop(e: React.DragEvent, track: Track) {
     const payload = readDragPayload(e.dataTransfer)
@@ -118,37 +191,54 @@ export function Timeline({
     setDropTarget(null)
   }
 
+  // ── track reorder (rail drag handle) ─────────────────────────────────
+  function startTrackDrag(trackId: UUID, ev: React.PointerEvent) {
+    if (!onReorderTrack || ev.button !== 0) return
+    ev.preventDefault()
+    ev.stopPropagation()
+    const originIndex = project.tracks.findIndex((t) => t.id === trackId)
+    if (originIndex === -1) return
+    const originY = ev.clientY
+    const rowHeight = 56
+
+    function onMove(e: PointerEvent) {
+      const deltaRows = Math.round((e.clientY - originY) / rowHeight)
+      const target = Math.max(
+        0,
+        Math.min(project.tracks.length - 1, originIndex + deltaRows),
+      )
+      setTrackDrag({ trackId, originIndex, targetIndex: target })
+    }
+    function onUp() {
+      setTrackDrag((drag) => {
+        if (drag && drag.targetIndex !== drag.originIndex && onReorderTrack) {
+          onReorderTrack(drag.trackId, drag.targetIndex)
+        }
+        return null
+      })
+      window.removeEventListener("pointermove", onMove)
+      window.removeEventListener("pointerup", onUp)
+      window.removeEventListener("pointercancel", onUp)
+    }
+    setTrackDrag({ trackId, originIndex, targetIndex: originIndex })
+    window.addEventListener("pointermove", onMove)
+    window.addEventListener("pointerup", onUp)
+    window.addEventListener("pointercancel", onUp)
+  }
+
   return (
     <div className="flex min-h-0 flex-col bg-neutral-950 text-neutral-100">
-      <div className="flex h-9 shrink-0 items-center gap-2 border-b border-neutral-800 px-3 text-[11px] text-neutral-400">
-        <span className="font-medium text-neutral-200">Timeline</span>
-        <span className="tabular-nums text-neutral-500">
-          {duration > 0
-            ? `${duration.toFixed(1)}s · ${project.clips.length} clip${project.clips.length === 1 ? "" : "s"}`
-            : "empty"}
-        </span>
-        <span className="flex-1" />
-        {onAddTrack && (
-          <>
-            <button
-              type="button"
-              onClick={() => onAddTrack("video")}
-              className="rounded border border-neutral-700 px-1.5 h-6 text-[10px] font-medium text-neutral-300 hover:bg-white/5 hover:text-white outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-              title="Add video track"
-            >
-              + Video
-            </button>
-            <button
-              type="button"
-              onClick={() => onAddTrack("audio")}
-              className="rounded border border-neutral-700 px-1.5 h-6 text-[10px] font-medium text-neutral-300 hover:bg-white/5 hover:text-white outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-              title="Add audio track"
-            >
-              + Audio
-            </button>
-            <span className="mx-1 h-4 w-px bg-neutral-800" aria-hidden />
-          </>
+      <div className="flex h-9 shrink-0 items-center gap-2 overflow-x-auto border-b border-neutral-800 px-3 text-[11px] text-neutral-400">
+        {selectedClipId && onInspectorPatch && onDeleteClip && (
+          <ClipInspectorFields
+            project={project}
+            selectedClipId={selectedClipId}
+            onUpdateClip={onInspectorPatch}
+            onRemoveClip={onDeleteClip}
+            onClose={() => onSelectClip(null)}
+          />
         )}
+        <span className="flex-1" />
         <IconButton
           size="xs"
           icon={<span aria-hidden>−</span>}
@@ -175,24 +265,57 @@ export function Timeline({
       <div className="flex min-h-0 flex-1">
         <div className="flex w-[64px] shrink-0 flex-col border-r border-neutral-800 bg-neutral-950/80">
           <div className="h-7 shrink-0 border-b border-neutral-800" />
-          {project.tracks.map((track) => (
-            <div
-              key={track.id}
-              className="group flex h-[56px] items-center justify-between gap-1 border-b border-neutral-800 px-2 text-[11px] text-neutral-400"
-            >
-              <span className="truncate font-medium">{track.label ?? track.id}</span>
-              {onRemoveTrack && project.tracks.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => onRemoveTrack(track.id)}
-                  className="opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
-                  title="Remove track"
+          {project.tracks.map((track, trackIdx) => {
+            const isDragging = trackDrag?.trackId === track.id
+            const isDropTargetRow =
+              !!trackDrag &&
+              trackDrag.trackId !== track.id &&
+              trackDrag.targetIndex === trackIdx
+            const canReorder = !!onReorderTrack && project.tracks.length > 1
+            return (
+              <div
+                key={track.id}
+                className={[
+                  "group relative flex h-[56px] items-center justify-between gap-1 border-b border-neutral-800 px-2 text-[11px] transition-colors",
+                  isDragging ? "bg-white/10 text-white" : "text-neutral-400",
+                  isDropTargetRow ? "bg-blue-500/10" : "",
+                ].join(" ")}
+                title={track.label ?? track.id}
+              >
+                <div
+                  onPointerDown={(e) => canReorder && startTrackDrag(track.id, e)}
+                  className={[
+                    "flex items-center gap-1",
+                    canReorder ? (isDragging ? "cursor-grabbing" : "cursor-grab") : "",
+                  ].join(" ")}
+                  title={canReorder ? "Drag to reorder" : undefined}
                 >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
+                  {canReorder && (
+                    <GripVertical
+                      size={12}
+                      className="text-neutral-600 opacity-0 transition-opacity group-hover:opacity-100"
+                      aria-hidden
+                    />
+                  )}
+                  {track.kind === "audio" ? (
+                    <Music2 size={14} aria-label="Audio track" />
+                  ) : (
+                    <Video size={14} aria-label="Video track" />
+                  )}
+                </div>
+                {onRemoveTrack && project.tracks.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveTrack(track.id)}
+                    className="opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+                    title="Remove track"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            )
+          })}
         </div>
 
         <div
@@ -214,19 +337,69 @@ export function Timeline({
                   onDragLeave={handleTrackDragLeave}
                   onDrop={(e) => handleTrackDrop(e, track)}
                 >
-                  {clipsOnTrack(project, track.id).map((clip) => (
-                    <ClipBlock
-                      key={clip.id}
-                      clip={clip}
-                      asset={getAsset(project, clip.assetId)}
-                      tracks={project.tracks}
-                      geom={geom}
-                      selected={selectedClipId === clip.id}
-                      onSelect={() => onSelectClip(clip.id)}
-                      onChange={(patch) => onUpdateClip(clip.id, patch)}
-                      onDragStart={() => onClipDragStart?.(clip.id)}
-                    />
-                  ))}
+                  {clipsOnTrack(project, track.id).map((clip) => {
+                    const clipBlock = (
+                      <ClipBlock
+                        clip={clip}
+                        asset={getAsset(project, clip.assetId)}
+                        tracks={project.tracks}
+                        geom={geom}
+                        selected={selectedClipId === clip.id}
+                        onSelect={() => onSelectClip(clip.id)}
+                        onChange={(patch) => onUpdateClip(clip.id, patch)}
+                        onDragStart={() => onClipDragStart?.(clip.id)}
+                      />
+                    )
+                    if (!onSplitClip && !onDuplicateClip && !onDeleteClip) {
+                      return <Fragment key={clip.id}>{clipBlock}</Fragment>
+                    }
+                    const canSplit =
+                      clip.start + SPLIT_MIN_OFFSET < playhead &&
+                      playhead < clip.start + clip.length - SPLIT_MIN_OFFSET
+                    return (
+                      <ContextMenu
+                        key={clip.id}
+                        onOpenChange={(open) => open && onSelectClip(clip.id)}
+                      >
+                        <ContextMenuTrigger asChild>{clipBlock}</ContextMenuTrigger>
+                        <ContextMenuContent>
+                          {onSplitClip && (
+                            <ContextMenuItem
+                              disabled={!canSplit}
+                              onSelect={() => onSplitClip(clip.id)}
+                            >
+                              Split at playhead
+                              <ContextMenuShortcut>
+                                {formatShortcut("S")}
+                              </ContextMenuShortcut>
+                            </ContextMenuItem>
+                          )}
+                          {onDuplicateClip && (
+                            <ContextMenuItem onSelect={() => onDuplicateClip(clip.id)}>
+                              Duplicate
+                              <ContextMenuShortcut>
+                                {formatShortcut("Cmd+D")}
+                              </ContextMenuShortcut>
+                            </ContextMenuItem>
+                          )}
+                          {onDeleteClip && (
+                            <>
+                              <ContextMenuSeparator />
+                              <ContextMenuItem
+                                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                onSelect={() => onDeleteClip(clip.id)}
+                              >
+                                Delete
+                                <ContextMenuShortcut>
+                                  {formatShortcut("Backspace")}
+                                </ContextMenuShortcut>
+                              </ContextMenuItem>
+                            </>
+                          )}
+                        </ContextMenuContent>
+                      </ContextMenu>
+                    )
+                  })}
                   {isDropActive && dropTarget && (
                     <div
                       className="pointer-events-none absolute top-1 bottom-1 w-0.5 bg-blue-400"
@@ -240,6 +413,30 @@ export function Timeline({
           </div>
         </div>
       </div>
+
+      {onAddTrack && (
+        <div className="flex h-8 shrink-0 items-center gap-1 border-t border-neutral-800 px-3 text-[11px] text-neutral-400">
+          <button
+            type="button"
+            onClick={() => onAddTrack("video")}
+            className="inline-flex items-center gap-1 rounded border border-neutral-700 px-2 h-6 text-[10px] font-medium text-neutral-300 hover:bg-white/5 hover:text-white outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+            title="Add video track"
+          >
+            <Video size={12} aria-hidden />
+            <span>Add track</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onAddTrack("audio")}
+            className="inline-flex items-center gap-1 rounded border border-neutral-700 px-2 h-6 text-[10px] font-medium text-neutral-300 hover:bg-white/5 hover:text-white outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+            title="Add audio track"
+          >
+            <Music2 size={12} aria-hidden />
+            <span>Add track</span>
+          </button>
+        </div>
+      )}
+
     </div>
   )
 }

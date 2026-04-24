@@ -2,6 +2,7 @@
 
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react"
 import { Kbd, formatShortcut } from "./kbd"
+import { Tooltip } from "./tooltip"
 
 type Variant = "primary" | "secondary" | "ghost" | "danger"
 type Size = "xs" | "sm" | "md"
@@ -59,7 +60,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       : formatShortcut(shortcut)
     : title
 
-  return (
+  const button = (
     <button
       ref={ref}
       type={type}
@@ -84,12 +85,27 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {children && <span className="truncate">{children}</span>}
       {iconRight && <span className="flex shrink-0 items-center">{iconRight}</span>}
       {shortcut && (
-        <Kbd className="ml-1 opacity-70 group-hover:opacity-100">
+        <Kbd
+          variant={variant === "primary" ? "light" : "dark"}
+          className="ml-1 opacity-70 group-hover:opacity-100"
+        >
           {formatShortcut(shortcut)}
         </Kbd>
       )}
     </button>
   )
+
+  // The shortcut is already visible as a chip on Buttons, so a tooltip only
+  // earns its keep when `title` adds an explanation that won't fit on the
+  // label itself.
+  if (title) {
+    return (
+      <Tooltip label={title} shortcut={shortcut}>
+        {button}
+      </Tooltip>
+    )
+  }
+  return button
 })
 
 /**
@@ -113,7 +129,7 @@ export const IconButton = forwardRef<HTMLButtonElement, ButtonProps>(function Ic
         ? "h-8 w-8"
         : "h-7 w-7"
 
-  return (
+  const button = (
     <button
       ref={ref}
       type="button"
@@ -135,4 +151,15 @@ export const IconButton = forwardRef<HTMLButtonElement, ButtonProps>(function Ic
       {icon}
     </button>
   )
+
+  // Icon-only buttons are nothing without their tooltip — always wrap when
+  // the caller supplied a label or a shortcut so hover reveals both.
+  if (title || shortcut) {
+    return (
+      <Tooltip label={title ?? formatShortcut(shortcut!)} shortcut={title ? shortcut : undefined}>
+        {button}
+      </Tooltip>
+    )
+  }
+  return button
 })

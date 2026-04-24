@@ -8,8 +8,11 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // `dark` sits on <html> so Radix portals (tooltip / context-menu) inherit
+  // the dark-mode CSS variables — portals render at document body, outside
+  // any in-page React tree, so a nested `.dark` wrapper won't reach them.
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   )

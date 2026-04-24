@@ -77,18 +77,33 @@ video-editor/
 │   │   ├── agent-sidebar.tsx
 │   │   └── setup-checklist.tsx
 │   ├── components/
-│   │   ├── asset-library.tsx        # URL asset input + thumbnail strip
-│   │   ├── inspector.tsx            # Selected-clip editor (trim, volume, overlay)
-│   │   ├── video-preview.tsx        # Preview player + Render / Preview buttons
+│   │   ├── asset-panel.tsx          # URL asset input + thumbnail strip (drag to timeline)
+│   │   ├── inspector-drawer.tsx     # Selected-clip editor (trim, volume, overlay)
+│   │   ├── clip-inspector-bar.tsx   # Compact inspector row above the timeline
+│   │   ├── live-preview.tsx         # Preview player + Render / Preview buttons
+│   │   ├── top-bar.tsx              # Split / Render / chat toggle / zoom
+│   │   ├── chat-sidebar.tsx         # Collapsible agent chat panel
+│   │   ├── chat-panel.tsx           # Message list + composer
+│   │   ├── resizable-split.tsx      # Draggable divider (preview ↔ timeline)
+│   │   ├── ui/                      # button, tooltip, context-menu, kbd, select, …
 │   │   └── timeline/
-│   │       ├── Timeline.tsx         # Ruler + tracks + playhead + zoom
+│   │       ├── Timeline.tsx         # Ruler + tracks + playhead + zoom + DnD target
 │   │       ├── Ruler.tsx
-│   │       ├── ClipBlock.tsx        # Block with left/right trim handles
+│   │       ├── ClipBlock.tsx        # Block with trim handles + right-click menu
 │   │       └── Playhead.tsx
 │   ├── lib/
 │   │   ├── project.ts               # Data types + derived helpers
 │   │   ├── project-ops.ts           # Reducer (applyOp / applyOps)
-│   │   └── timeline-geom.ts         # px ↔ seconds, snap, tick interval
+│   │   ├── timeline-geom.ts         # px ↔ seconds, snap, tick interval
+│   │   ├── dnd.ts                   # Drag-and-drop payload helpers
+│   │   ├── render.ts                # RenderState type + defaults
+│   │   ├── chat-protocol.ts         # System-note framing for the agent
+│   │   ├── tool-events.ts           # Typed parser for agent tool-call stream
+│   │   ├── local-storage.ts         # Safe JSON read/write hooks
+│   │   ├── use-agent-session.ts     # Sandbox + thread lifecycle
+│   │   ├── use-project-history.ts   # Undo/redo stack over applyOp
+│   │   ├── use-shortcuts.ts         # Keyboard-combo dispatcher
+│   │   └── use-color-mode.ts        # Light/dark toggle
 │   ├── page.tsx                     # NLE layout glue
 │   ├── layout.tsx
 │   ├── globals.css
@@ -139,10 +154,36 @@ Click **Load sample** in the asset library to get a handful of verified public c
 | Tool | What it does |
 |------|--------------|
 | `probe_asset({ url })` | Runs `ffprobe` on a public URL, returns `{ duration, width, height, hasAudio, videoCodec, audioCodec }`. Called automatically whenever the agent discovers an asset without a known duration. |
-| `update_timeline({ ops, summary })` | Mutates the project. Ops: `add_asset`, `update_asset`, `remove_asset`, `add_clip`, `remove_clip`, `move_clip`, `trim_clip`, `set_volume`, `set_text_overlay`, `set_output`, `add_track`, `remove_track`, `clear_timeline`. Client applies them through the same reducer the drag UI uses. |
+| `update_timeline({ ops, summary })` | Mutates the project. Ops: `add_asset`, `update_asset`, `remove_asset`, `add_clip`, `remove_clip`, `move_clip`, `trim_clip`, `split_clip`, `set_volume`, `set_text_overlay`, `set_output`, `add_track`, `remove_track`, `move_track`, `clear_timeline`. Client applies them through the same reducer the drag UI uses. |
 | `render_project({ project, preview })` | Downloads every referenced asset to `/tmp/video-editor/media/` (cached by URL hash), compiles a single `filter_complex` graph, runs ffmpeg, uploads the result, returns a public URL. `preview=true` uses `-preset ultrafast -crf 28` for fast iteration. |
 
 The UI injects the current project into every message as a hidden system-note block, so the agent always sees the canonical state before deciding what ops to emit.
+
+---
+
+## Keyboard shortcuts
+
+All shortcuts go through `app/lib/use-shortcuts.ts`. They're disabled while focus is inside an input/textarea (except undo/redo, which always win).
+
+| Combo | Action |
+|---|---|
+| `Space` | Play / pause preview |
+| `←` / `→` | Nudge playhead ±0.1 s |
+| `Shift+←` / `Shift+→` | Nudge playhead ±1 s |
+| `Home` / `End` | Jump to start / end of project |
+| `S` | Split selected (or clip under playhead) |
+| `Shift+S` | Razor — split **every** track at the playhead |
+| `Cmd+D` | Duplicate selected clip |
+| `Backspace` / `Delete` | Remove selected clip |
+| `Shift+Backspace` / `Shift+Delete` | Ripple delete (close the gap) |
+| `Esc` | Deselect |
+| `Cmd+K` | Toggle chat sidebar |
+| `Cmd+Z` / `Cmd+Shift+Z` | Undo / redo (global — wins even inside the chat textarea) |
+| `Cmd+Enter` | Render final |
+| `Cmd+P` | Render preview (fast, lower-quality) |
+| `Cmd+=` / `Cmd+-` (or `+` / `-`) | Zoom in / out |
+
+Right-click a clip for **Split / Duplicate / Delete / Ripple delete** in a context menu. Assets in the left panel can be dragged onto a track, or clicked to append to the matching track type.
 
 ---
 
@@ -213,7 +254,7 @@ Next hops:
 - No Ken-Burns / pan-zoom on still images (held at one position for the clip duration).
 - Audio mixing is linear `amix` — no ducking or sidechain.
 - Rendered MP4s aren't proxy-cached; every render starts from scratch.
-- Drag-and-drop **assets onto tracks** is not implemented — click an asset tile to append to the matching track, or let the agent do it via `add_clip`.
+- Track reordering is supported via the `move_track` op (agent-side), but there's no drag-handle in the track header yet — you'll need to ask the agent or dispatch the op from code.
 
 Every one of those is a short feature away; each has a concrete extension point called out in _Scaling to production_.
 

@@ -1,8 +1,8 @@
 "use client"
 
-import { MessageSquare, Redo2, Undo2 } from "lucide-react"
+import { MessageSquare, Scissors } from "lucide-react"
 import type { ProjectOutput } from "../lib/project"
-import { IconButton, PillGroup } from "./ui"
+import { Button, IconButton, PillGroup } from "./ui"
 
 interface TopBarProps {
   output: ProjectOutput
@@ -10,10 +10,12 @@ interface TopBarProps {
   onUpdateOutput: (patch: Partial<ProjectOutput>) => void
   onToggleChat: () => void
   chatOpen: boolean
-  onUndo: () => void
-  onRedo: () => void
-  canUndo: boolean
-  canRedo: boolean
+  onSplit: () => void
+  canSplit: boolean
+  onExport: () => void
+  /** Export is disabled while a render is already in flight or the timeline
+   * is empty — same guard as the ffmpeg pipeline. */
+  exportDisabled: boolean
 }
 
 export function TopBar({
@@ -22,10 +24,10 @@ export function TopBar({
   onUpdateOutput,
   onToggleChat,
   chatOpen,
-  onUndo,
-  onRedo,
-  canUndo,
-  canRedo,
+  onSplit,
+  canSplit,
+  onExport,
+  exportDisabled,
 }: TopBarProps) {
   return (
     <header className="flex h-11 shrink-0 min-w-0 items-center gap-3 overflow-x-auto border-b border-neutral-800 bg-neutral-950 px-3 text-neutral-100">
@@ -71,24 +73,27 @@ export function TopBar({
 
       <span className="flex-1" />
 
-      <div className="flex shrink-0 items-center gap-0.5">
-        <IconButton
-          icon={<Undo2 size={14} />}
-          onClick={onUndo}
-          disabled={!canUndo}
-          title="Undo"
-          shortcut="Cmd+Z"
-          aria-label="Undo"
-        />
-        <IconButton
-          icon={<Redo2 size={14} />}
-          onClick={onRedo}
-          disabled={!canRedo}
-          title="Redo"
-          shortcut="Cmd+Shift+Z"
-          aria-label="Redo"
-        />
-      </div>
+      <IconButton
+        icon={<Scissors size={14} />}
+        onClick={onSplit}
+        disabled={!canSplit}
+        title="Split at playhead"
+        shortcut="S"
+        aria-label="Split at playhead"
+      />
+
+      <span className="h-4 w-px shrink-0 bg-neutral-800" aria-hidden />
+
+      <Button
+        variant="primary"
+        size="sm"
+        onClick={onExport}
+        disabled={exportDisabled}
+        title="Export a final-quality MP4"
+        shortcut="Cmd+Enter"
+      >
+        Export
+      </Button>
 
       <span className="h-4 w-px shrink-0 bg-neutral-800" aria-hidden />
 

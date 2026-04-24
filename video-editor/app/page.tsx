@@ -1,37 +1,28 @@
 "use client"
 
-import { AgentChat, createAgentChat } from "@21st-sdk/nextjs"
-import "@21st-sdk/react/styles.css"
-import type { Chat } from "@ai-sdk/react"
-import { useChat } from "@ai-sdk/react"
-import type { UIMessage } from "ai"
 import { useSearchParams } from "next/navigation"
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
-import { SAMPLE_ASSETS, SAMPLE_PROMPTS } from "./sample-data"
-import type { ThreadItem } from "./types"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AssetPanel } from "./components/asset-panel"
-import { InspectorDrawer } from "./components/inspector-drawer"
-import { ResizableSplit } from "./components/resizable-split"
-import { Timeline, MAX_ZOOM_IDX, MIN_ZOOM_IDX } from "./components/timeline/Timeline"
-import { TopBar } from "./components/top-bar"
+import { ChatSidebar } from "./components/chat-sidebar"
 import {
   LivePreview,
   type LivePreviewHandle,
-  type RenderStatus,
 } from "./components/live-preview"
+import { ResizableSplit } from "./components/resizable-split"
+import { Timeline, MAX_ZOOM_IDX, MIN_ZOOM_IDX } from "./components/timeline/Timeline"
+import { TopBar } from "./components/top-bar"
+import { TooltipProvider } from "./components/ui/tooltip"
+import { formatSilentAction } from "./lib/chat-protocol"
+import { readStorage, useLocalStorageState, writeStorage } from "./lib/local-storage"
 import {
   type Asset,
   type Clip,
   type Project,
   type ProjectOutput,
   type UUID,
+  clampStartNonOverlapping,
+  clipsOnTrack,
+  findNearestFreeStart,
   getAsset,
   getClip,
   newId,
@@ -39,513 +30,89 @@ import {
   projectDuration,
 } from "./lib/project"
 import type { Op } from "./lib/project-ops"
+import { INITIAL_RENDER, type RenderState } from "./lib/render"
+import { useAgentSession } from "./lib/use-agent-session"
+import { useColorMode, type ColorMode } from "./lib/use-color-mode"
 import { useProjectHistory } from "./lib/use-project-history"
 import { useShortcuts } from "./lib/use-shortcuts"
+import { SAMPLE_ASSETS, SAMPLE_PROMPTS } from "./sample-data"
 
-const AGENT_SLUG = "video-editor"
-const SYSTEM_NOTE_PREFIX = "[[[SYSTEM NOTE:"
-const SYSTEM_NOTE_SUFFIX = "]]]"
-/**
- * Messages that start with this marker are UI-initiated commands (like
- * "render the project") which we don't want cluttering the visible chat.
- * The agent sees them normally; the user just sees an activity indicator.
- */
-const SILENT_PREFIX = "[[[UI-ACTION:"
-const SILENT_SUFFIX = "]]]"
+/** Minimum distance from clip edges for a split to be meaningful. Mirrors the
+ *  guard inside `applyOp("split_clip")` so the UI button stays in sync. */
+const SPLIT_MIN_OFFSET = 0.05
+const DEFAULT_ZOOM_IDX = 3 // 120 px/s
+const CHAT_OPEN_STORAGE_KEY = "video-editor:chat-open"
+const projectStoreKey = (sandboxId: string) => `video-editor:project:${sandboxId}`
 
-const projectStoreKey = (sb: string) => `video-editor:project:${sb}`
-const messagesStoreKey = (sb: string, th: string) => `video-editor:messages:${sb}:${th}`
-const chatOpenStoreKey = "video-editor:chat-open"
-
-// ───────────────── chat/tool helpers (same as before) ─────────────────
-
-function stripSystemNotePrefix(text: string): string {
-  if (!text.startsWith(SYSTEM_NOTE_PREFIX)) return text
-  const i = text.indexOf(SYSTEM_NOTE_SUFFIX)
-  if (i === -1) return text
-  return text.slice(i + SYSTEM_NOTE_SUFFIX.length).trimStart()
-}
-
-function isSilentMessage(text: string): boolean {
-  return text.startsWith(SYSTEM_NOTE_PREFIX)
-    ? isSilentMessage(stripSystemNotePrefix(text))
-    : text.startsWith(SILENT_PREFIX)
-}
-
-function extractToolPart(part: unknown) {
-  if (!part || typeof part !== "object") return null
-  const m = part as Record<string, unknown>
-  if (typeof m.type !== "string") return null
-  const type = m.type
-  const toolName = typeof m.toolName === "string" ? m.toolName : undefined
-  if (!type.startsWith("tool-") && !toolName) return null
-  return {
-    type,
-    toolName,
-    state: typeof m.state === "string" ? m.state : undefined,
-    toolCallId: typeof m.toolCallId === "string" ? m.toolCallId : undefined,
-    preliminary: typeof m.preliminary === "boolean" ? m.preliminary : undefined,
-    input: m.input,
-    output: m.output,
-    result: m.result,
-  }
-}
-
-function extractToolText(output: unknown): string | null {
-  if (typeof output === "string") return output
-  if (Array.isArray(output)) {
-    const t = (output as Array<{ type?: string; text?: string }>).find(
-      (p) => p?.type === "text" && typeof p.text === "string",
-    )
-    return t?.text ?? null
-  }
-  if (output && typeof output === "object") {
-    const m = output as { text?: unknown; content?: unknown }
-    if (typeof m.text === "string") return m.text
-    if (Array.isArray(m.content)) {
-      const t = (m.content as Array<{ type?: string; text?: string }>).find(
-        (p) => p?.type === "text" && typeof p.text === "string",
-      )
-      return t?.text ?? null
-    }
-  }
-  return null
-}
-
-function parseToolJson(o: unknown): Record<string, unknown> | null {
-  const t = extractToolText(o)
-  if (!t) return null
-  try {
-    const v = JSON.parse(t)
-    return v && typeof v === "object" && !Array.isArray(v)
-      ? (v as Record<string, unknown>)
-      : null
-  } catch {
-    return null
-  }
-}
-
-function matchTool(name: string, want: string) {
+export default function Home() {
   return (
-    name === want ||
-    name.endsWith(`-${want}`) ||
-    name.endsWith(`__${want}`) ||
-    name.includes(want)
-  )
-}
-
-// ───────────────── render state ─────────────────
-
-interface RenderState {
-  url: string | null
-  status: RenderStatus
-  errorMessage: string | null
-  upload: { backend: string; bytes: number; elapsedMs: number } | null
-}
-
-const INITIAL_RENDER: RenderState = {
-  url: null,
-  status: "idle",
-  errorMessage: null,
-  upload: null,
-}
-
-// ───────────────── chat panel ─────────────────
-
-interface ChatPanelProps {
-  sandboxId: string
-  threadId: string
-  colorMode: "light" | "dark"
-  project: Project
-  onApplyOps: (ops: Op[]) => void
-  onProbeResult: (url: string, info: Partial<Asset>) => void
-  onRenderResult: (state: RenderState) => void
-  onRenderPending: () => void
-  pendingPrompt: string | null
-  onPromptConsumed: () => void
-}
-
-function ChatPanel({
-  sandboxId,
-  threadId,
-  colorMode,
-  project,
-  onApplyOps,
-  onProbeResult,
-  onRenderResult,
-  onRenderPending,
-  pendingPrompt,
-  onPromptConsumed,
-}: ChatPanelProps) {
-  const chat = useMemo(
-    () =>
-      createAgentChat({
-        agent: AGENT_SLUG,
-        tokenUrl: "/api/agent/token",
-        sandboxId,
-        threadId,
-      }),
-    [sandboxId, threadId],
-  )
-  const { messages, sendMessage, status, stop, error, setMessages } = useChat({
-    chat: chat as Chat<UIMessage>,
-  })
-  const didHydrateRef = useRef(false)
-  const storageKey = messagesStoreKey(sandboxId, threadId)
-  const appliedToolCallsRef = useRef<Set<string>>(new Set())
-  const lastRenderPhaseRef = useRef<{
-    id: string
-    phase: "pending" | "done" | "error"
-  } | null>(null)
-
-  useEffect(() => {
-    if (didHydrateRef.current) return
-    didHydrateRef.current = true
-    let cancelled = false
-    async function hydrate() {
-      try {
-        const res = await fetch(
-          `/api/agent/threads/${encodeURIComponent(threadId)}?sandboxId=${encodeURIComponent(
-            sandboxId,
-          )}`,
-        )
-        if (cancelled) return
-        if (res.ok) {
-          const thread = (await res.json()) as { messages?: UIMessage[] | unknown }
-          if (Array.isArray(thread.messages) && thread.messages.length > 0) {
-            setMessages(thread.messages as UIMessage[])
-            return
-          }
-        }
-      } catch {}
-      if (cancelled) return
-      try {
-        const stored = localStorage.getItem(storageKey)
-        if (!stored) return
-        const parsed = JSON.parse(stored) as UIMessage[]
-        if (!cancelled && parsed.length > 0) setMessages(parsed)
-      } catch {}
-    }
-    hydrate()
-    return () => {
-      cancelled = true
-    }
-  }, [sandboxId, threadId, setMessages, storageKey])
-
-  useEffect(() => {
-    if (messages.length === 0) return
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(messages))
-    } catch {}
-  }, [messages, storageKey])
-
-  useEffect(() => {
-    const updateOps: Op[] = []
-    let newRenderPhase: {
-      id: string
-      phase: "pending" | "done" | "error"
-      state: RenderState | null
-    } | null = null
-
-    for (const message of messages) {
-      for (const part of message.parts) {
-        const tp = extractToolPart(part)
-        if (!tp) continue
-        const name = tp.toolName ?? tp.type.replace(/^tool-/, "")
-
-        if (
-          matchTool(name, "update_timeline") &&
-          tp.toolCallId &&
-          !appliedToolCallsRef.current.has(tp.toolCallId)
-        ) {
-          const body = parseToolJson(tp.output ?? tp.result)
-          if (body?.ops && Array.isArray(body.ops)) {
-            updateOps.push(...(body.ops as Op[]))
-            appliedToolCallsRef.current.add(tp.toolCallId)
-          }
-        }
-
-        if (
-          matchTool(name, "probe_asset") &&
-          tp.toolCallId &&
-          !appliedToolCallsRef.current.has(tp.toolCallId)
-        ) {
-          const body = parseToolJson(tp.output ?? tp.result)
-          if (body?.url && typeof body.url === "string") {
-            onProbeResult(body.url, {
-              duration: typeof body.duration === "number" ? body.duration : null,
-              width: typeof body.width === "number" ? body.width : null,
-              height: typeof body.height === "number" ? body.height : null,
-              hasAudio: typeof body.hasAudio === "boolean" ? body.hasAudio : null,
-            })
-            appliedToolCallsRef.current.add(tp.toolCallId)
-          } else if (body?.error) {
-            appliedToolCallsRef.current.add(tp.toolCallId)
-          }
-        }
-
-        if (matchTool(name, "render_project") && tp.toolCallId) {
-          const isPending =
-            tp.state === "input-available" ||
-            tp.state === "streaming" ||
-            tp.preliminary === true ||
-            (tp.output === undefined && tp.result === undefined)
-
-          if (isPending) {
-            newRenderPhase = { id: tp.toolCallId, phase: "pending", state: null }
-            continue
-          }
-          const body = parseToolJson(tp.output ?? tp.result)
-          if (body?.url && typeof body.url === "string") {
-            newRenderPhase = {
-              id: tp.toolCallId,
-              phase: "done",
-              state: {
-                url: body.url,
-                status: "done",
-                errorMessage: null,
-                upload: {
-                  backend: String(body.backend ?? "?"),
-                  bytes: typeof body.bytes === "number" ? body.bytes : 0,
-                  elapsedMs: typeof body.elapsedMs === "number" ? body.elapsedMs : 0,
-                },
-              },
-            }
-          } else if (body?.error) {
-            newRenderPhase = {
-              id: tp.toolCallId,
-              phase: "error",
-              state: {
-                url: null,
-                status: "error",
-                errorMessage: String(body.error),
-                upload: null,
-              },
-            }
-          }
-        }
+    <Suspense
+      fallback={
+        <main className="flex h-screen items-center justify-center bg-neutral-950 text-neutral-100">
+          Loading…
+        </main>
       }
-    }
-
-    if (updateOps.length > 0) onApplyOps(updateOps)
-
-    if (newRenderPhase) {
-      const prev = lastRenderPhaseRef.current
-      const same = prev && prev.id === newRenderPhase.id && prev.phase === newRenderPhase.phase
-      if (!same) {
-        lastRenderPhaseRef.current = { id: newRenderPhase.id, phase: newRenderPhase.phase }
-        if (newRenderPhase.phase === "pending") onRenderPending()
-        else if (newRenderPhase.state) onRenderResult(newRenderPhase.state)
-      }
-    }
-  }, [messages, onApplyOps, onProbeResult, onRenderPending, onRenderResult])
-
-  // Project reference is stable between renders when nothing changes, but
-  // `project` in deps would still rebuild every edit. We snapshot it on the
-  // fly when the prompt fires so agent always sees the freshest state.
-  const projectSnapshotRef = useRef(project)
-  projectSnapshotRef.current = project
-
-  useEffect(() => {
-    if (!pendingPrompt) return
-    const prefix = `${SYSTEM_NOTE_PREFIX} PROJECT: ${JSON.stringify(projectSnapshotRef.current)} ${SYSTEM_NOTE_SUFFIX}`
-    sendMessage({ text: `${prefix}\n\n${pendingPrompt}` })
-    onPromptConsumed()
-  }, [pendingPrompt, sendMessage, onPromptConsumed])
-
-  useEffect(() => {
-    if (!error) return
-    const msg =
-      typeof error === "string" ? error : (error as Error)?.message ?? String(error)
-    if (msg.includes("thread_not_found") || msg.includes("sandbox_not_found")) {
-      try {
-        for (const key of Object.keys(localStorage)) {
-          if (
-            key === "agent_thread_id" ||
-            key === "agent_sandbox_id" ||
-            key.startsWith("video-editor:")
-          )
-            localStorage.removeItem(key)
-        }
-      } catch {}
-      window.location.reload()
-    }
-  }, [error])
-
-  const displayMessages = useMemo<UIMessage[]>(
-    () =>
-      messages
-        // Hide user messages that are UI-initiated commands (render, probe)
-        // — they're plumbing, not conversation.
-        .filter((m) => {
-          if (m.role !== "user") return true
-          const textPart = m.parts.find(
-            (p): p is { type: "text"; text: string } =>
-              p.type === "text" && typeof (p as { text?: unknown }).text === "string",
-          )
-          if (!textPart) return true
-          return !isSilentMessage(textPart.text)
-        })
-        .map((m) => ({
-          ...m,
-          parts: m.parts.map((p) =>
-            m.role !== "user" || p.type !== "text"
-              ? p
-              : { ...p, text: stripSystemNotePrefix(p.text) },
-          ),
-        })),
-    [messages],
-  )
-
-  return (
-    <div className={`flex h-full flex-col ${colorMode === "dark" ? "dark" : ""}`}>
-      <AgentChat
-        messages={displayMessages}
-        onSend={(msg) => {
-          const prefix = `${SYSTEM_NOTE_PREFIX} PROJECT: ${JSON.stringify(projectSnapshotRef.current)} ${SYSTEM_NOTE_SUFFIX}`
-          sendMessage({ text: `${prefix}\n\n${msg.content}` })
-        }}
-        status={status}
-        onStop={stop}
-        error={error ?? undefined}
-        colorMode={colorMode}
-      />
-    </div>
+    >
+      <EditorShell />
+    </Suspense>
   )
 }
 
-// ───────────────── main ─────────────────
-
-function HomeContent() {
-  const searchParams = useSearchParams()
-  const [sandboxId, setSandboxId] = useState<string | null>(null)
-  const [threadId, setThreadId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const initRef = useRef(false)
-  const themeParam = searchParams.get("theme")
-  const [colorMode, setColorMode] = useState<"light" | "dark">("dark")
+function EditorShell() {
+  const colorMode = useResolvedColorMode()
+  const session = useAgentSession()
 
   const history = useProjectHistory(newProject())
-  const { project, apply: applyOpsWithHistory, set: setProject, undo, redo, canUndo, canRedo } =
-    history
-  const [selectedClipId, setSelectedClipId] = useState<UUID | null>(null)
-  const [render, setRender] = useState<RenderState>(INITIAL_RENDER)
-  const [playhead, setPlayhead] = useState(0)
-  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
-  const [zoomIdx, setZoomIdx] = useState(3) // 120 px/s
-  // Chat is an integral part of the editor — open by default so users see it.
-  const [chatOpen, setChatOpen] = useState(true)
-  const hydratedProjectRef = useRef(false)
-  const hydratedChatOpenRef = useRef(false)
-  const previewRef = useRef<LivePreviewHandle | null>(null)
+  const {
+    project,
+    apply: applyOpsWithHistory,
+    set: setProject,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = history
 
-  // Keep a stable reference to the latest project so callbacks don't need
-  // `project` in their deps (which would force them to rebuild every edit
-  // and re-trigger downstream effects → infinite loops).
+  // Keep a live ref so handlers that react to transient input (keyboard,
+  // drag) can read the current project without rebuilding on every edit.
   const projectRef = useRef(project)
   projectRef.current = project
+  const previewRef = useRef<LivePreviewHandle | null>(null)
 
+  const [selectedClipId, setSelectedClipId] = useState<UUID | null>(null)
+  const [playhead, setPlayhead] = useState(0)
+  const [zoomIdx, setZoomIdx] = useState(DEFAULT_ZOOM_IDX)
+  const [render, setRender] = useState<RenderState>(INITIAL_RENDER)
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
+  const [chatOpen, setChatOpen] = useLocalStorageState<boolean>(CHAT_OPEN_STORAGE_KEY, true)
+
+  useProjectPersistence(session.sandboxId, project, setProject)
   const duration = useMemo(() => projectDuration(project), [project])
 
-  useEffect(() => {
-    if (themeParam === "light") { setColorMode("light"); return }
-    if (themeParam === "dark") { setColorMode("dark"); return }
-    const mq = window.matchMedia("(prefers-color-scheme: dark)")
-    setColorMode(mq.matches ? "dark" : "light")
-    const handler = (e: MediaQueryListEvent) => setColorMode(e.matches ? "dark" : "light")
-    mq.addEventListener("change", handler)
-    return () => mq.removeEventListener("change", handler)
-  }, [themeParam])
+  // ───────────────── selection-aware derivations ─────────────────
 
-  // session init (same as before)
-  useEffect(() => {
-    if (initRef.current) return
-    initRef.current = true
-    async function init() {
-      try {
-        async function createFreshSandbox() {
-          const r = await fetch("/api/agent/sandbox", { method: "POST" })
-          if (!r.ok) throw new Error(`Failed to create sandbox: ${r.status}`)
-          const d = await r.json()
-          const id = d.sandboxId as string
-          localStorage.setItem("agent_sandbox_id", id)
-          return id
-        }
-        let sbId = localStorage.getItem("agent_sandbox_id")
-        if (!sbId) sbId = await createFreshSandbox()
-        let threadsRes = await fetch(`/api/agent/threads?sandboxId=${sbId}`)
-        if (!threadsRes.ok) {
-          localStorage.removeItem("agent_thread_id")
-          sbId = await createFreshSandbox()
-          threadsRes = await fetch(`/api/agent/threads?sandboxId=${sbId}`)
-          if (!threadsRes.ok) throw new Error(`Failed to fetch threads: ${threadsRes.status}`)
-        }
-        setSandboxId(sbId)
-        const existingThreads: ThreadItem[] = await threadsRes.json()
-        const savedThreadId = localStorage.getItem("agent_thread_id")
-        let thId: string
-        if (existingThreads.length > 0) {
-          thId =
-            existingThreads.find((t) => t.id === savedThreadId)?.id
-            ?? existingThreads[0]!.id
-        } else {
-          const r = await fetch("/api/agent/threads", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sandboxId: sbId, name: "Editor session" }),
-          })
-          if (!r.ok) throw new Error(`Failed to create thread: ${r.status}`)
-          const t: ThreadItem = await r.json()
-          thId = t.id
-        }
-        localStorage.setItem("agent_thread_id", thId)
-        setThreadId(thId)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to initialize")
-      }
-    }
-    init()
-  }, [])
+  const splittableClip = useMemo(
+    () => findSplittableClip(project, playhead, selectedClipId),
+    [project, playhead, selectedClipId],
+  )
+  const canSplit = !!splittableClip
 
-  useEffect(() => {
-    if (!sandboxId || hydratedProjectRef.current) return
-    hydratedProjectRef.current = true
-    try {
-      const stored = localStorage.getItem(projectStoreKey(sandboxId))
-      if (stored) {
-        const parsed = JSON.parse(stored) as Project
-        if (parsed && Array.isArray(parsed.tracks) && Array.isArray(parsed.clips)) {
-          setProject(parsed, false)
-        }
-      }
-    } catch {}
-  }, [sandboxId, setProject])
-
-  useEffect(() => {
-    if (!sandboxId) return
-    try {
-      localStorage.setItem(projectStoreKey(sandboxId), JSON.stringify(project))
-    } catch {}
-  }, [project, sandboxId])
-
-  useEffect(() => {
-    if (hydratedChatOpenRef.current) return
-    hydratedChatOpenRef.current = true
-    try {
-      const stored = localStorage.getItem(chatOpenStoreKey)
-      if (stored === "1") setChatOpen(true)
-    } catch {}
-  }, [])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(chatOpenStoreKey, chatOpen ? "1" : "0")
-    } catch {}
-  }, [chatOpen])
+  const selectedTrackId = useMemo(() => {
+    if (!selectedClipId) return null
+    return getClip(project, selectedClipId)?.trackId ?? null
+  }, [project, selectedClipId])
 
   // ───────────────── handlers ─────────────────
 
-  const agentOnline = !!threadId && !!sandboxId
+  const handleSeekTo = useCallback((s: number) => {
+    setPlayhead(s)
+    previewRef.current?.seek(s)
+  }, [])
+
+  const nudgePlayhead = useCallback(
+    (delta: number) => handleSeekTo(Math.max(0, playhead + delta)),
+    [handleSeekTo, playhead],
+  )
 
   const handleAddAsset = useCallback(
     (asset: Omit<Asset, "id"> & { id?: string }) => {
@@ -556,9 +123,7 @@ function HomeContent() {
   )
 
   const handleRemoveAsset = useCallback(
-    (id: string) => {
-      applyOpsWithHistory([{ op: "remove_asset", assetId: id }])
-    },
+    (id: string) => applyOpsWithHistory([{ op: "remove_asset", assetId: id }]),
     [applyOpsWithHistory],
   )
 
@@ -586,8 +151,14 @@ function HomeContent() {
 
   const handleDropAsset = useCallback(
     (assetId: string, trackId: UUID, startSeconds: number) => {
+      const p = projectRef.current
+      const asset = getAsset(p, assetId)
+      // Use the asset's natural duration as the dropped clip's length so the
+      // overlap check matches the length `add_clip` will actually create.
+      const length = estimateDropLength(asset)
+      const resolvedStart = findNearestFreeStart(p, trackId, length, startSeconds)
       applyOpsWithHistory([
-        { op: "add_clip", trackId, assetId, start: startSeconds },
+        { op: "add_clip", trackId, assetId, start: resolvedStart, length },
       ])
     },
     [applyOpsWithHistory],
@@ -598,12 +169,18 @@ function HomeContent() {
       clipId: UUID,
       patch: { start?: number; length?: number; trimIn?: number; trackId?: string },
     ) => {
+      const p = projectRef.current
+      const clip = getClip(p, clipId)
+      if (!clip) return
+
+      const resolved = resolveNonOverlappingPatch(p, clip, patch)
+
       const ops: Op[] = []
-      if (patch.trimIn !== undefined || patch.length !== undefined) {
-        ops.push({ op: "trim_clip", clipId, trimIn: patch.trimIn, length: patch.length })
+      if (resolved.trimIn !== undefined || resolved.length !== undefined) {
+        ops.push({ op: "trim_clip", clipId, trimIn: resolved.trimIn, length: resolved.length })
       }
-      if (patch.start !== undefined || patch.trackId !== undefined) {
-        ops.push({ op: "move_clip", clipId, start: patch.start, trackId: patch.trackId })
+      if (resolved.start !== undefined || resolved.trackId !== undefined) {
+        ops.push({ op: "move_clip", clipId, start: resolved.start, trackId: resolved.trackId })
       }
       if (ops.length > 0) applyOpsWithHistory(ops)
     },
@@ -658,6 +235,63 @@ function HomeContent() {
     [applyOpsWithHistory],
   )
 
+  const handleDuplicateClip = useCallback(
+    (clipId: UUID) => {
+      const p = projectRef.current
+      const clip = getClip(p, clipId)
+      if (!clip) return
+      const ops = duplicateClipOps(p, clip)
+      applyOpsWithHistory(ops)
+      setSelectedClipId(ops[0].op === "add_clip" ? ops[0].clipId! : clipId)
+    },
+    [applyOpsWithHistory],
+  )
+
+  // Ripple delete: remove the clip AND shift every following clip on the same
+  // track leftward by its length, closing the gap.
+  const handleRippleDeleteClip = useCallback(
+    (clipId: UUID) => {
+      const p = projectRef.current
+      const clip = getClip(p, clipId)
+      if (!clip) return
+      const shift = clip.length
+      const clipEnd = clip.start + clip.length
+      const following = clipsOnTrack(p, clip.trackId).filter(
+        (c) => c.id !== clip.id && c.start >= clipEnd - 0.01,
+      )
+      const ops: Op[] = [{ op: "remove_clip", clipId }]
+      for (const c of following) {
+        ops.push({ op: "move_clip", clipId: c.id, start: Math.max(0, c.start - shift) })
+      }
+      applyOpsWithHistory(ops)
+      setSelectedClipId((sel) => (sel === clipId ? null : sel))
+    },
+    [applyOpsWithHistory],
+  )
+
+  const handleSplitClip = useCallback(
+    (clipId: UUID) => {
+      const clip = getClip(projectRef.current, clipId)
+      if (!clip || !isInterior(clip, playhead)) return
+      applyOpsWithHistory([{ op: "split_clip", clipId, at: playhead }])
+    },
+    [playhead, applyOpsWithHistory],
+  )
+
+  const handleSplitAtPlayhead = useCallback(() => {
+    if (!splittableClip) return
+    applyOpsWithHistory([{ op: "split_clip", clipId: splittableClip.id, at: playhead }])
+  }, [splittableClip, playhead, applyOpsWithHistory])
+
+  // Razor tool: split every clip across all tracks that straddles the playhead.
+  const handleRazorAtPlayhead = useCallback(() => {
+    const candidates = projectRef.current.clips.filter((c) => isInterior(c, playhead))
+    if (candidates.length === 0) return
+    applyOpsWithHistory(
+      candidates.map((c) => ({ op: "split_clip" as const, clipId: c.id, at: playhead })),
+    )
+  }, [playhead, applyOpsWithHistory])
+
   const handleUpdateOutput = useCallback(
     (patch: Partial<ProjectOutput>) => {
       applyOpsWithHistory([{ op: "set_output", patch }])
@@ -666,16 +300,18 @@ function HomeContent() {
   )
 
   const handleAddTrack = useCallback(
-    (kind: "video" | "audio") => {
-      applyOpsWithHistory([{ op: "add_track", kind }])
-    },
+    (kind: "video" | "audio") => applyOpsWithHistory([{ op: "add_track", kind }]),
     [applyOpsWithHistory],
   )
 
   const handleRemoveTrack = useCallback(
-    (trackId: UUID) => {
-      applyOpsWithHistory([{ op: "remove_track", trackId }])
-    },
+    (trackId: UUID) => applyOpsWithHistory([{ op: "remove_track", trackId }]),
+    [applyOpsWithHistory],
+  )
+
+  const handleReorderTrack = useCallback(
+    (trackId: UUID, toIndex: number) =>
+      applyOpsWithHistory([{ op: "move_track", trackId, toIndex }]),
     [applyOpsWithHistory],
   )
 
@@ -688,42 +324,22 @@ function HomeContent() {
     [applyOpsWithHistory],
   )
 
-  const handleRender = useCallback(
-    (preview: boolean) => {
-      if (projectRef.current.clips.length === 0) {
-        setRender({
-          url: null,
-          status: "error",
-          errorMessage: "Timeline is empty.",
-          upload: null,
-        })
-        return
-      }
-      // Send a silent UI-action message — hidden from chat, visible to the
-      // agent. The agent will invoke render_project and its tool output flows
-      // back through ChatPanel's effect.
-      setPendingPrompt(
-        `${SILENT_PREFIX} render ${
-          preview ? "draft preview" : "final"
-        } ${SILENT_SUFFIX} Render the current project using render_project({ preview: ${preview} }).`,
-      )
-    },
-    [],
-  )
-
-  const handleResetSession = useCallback(() => {
-    try {
-      for (const key of Object.keys(localStorage)) {
-        if (
-          key === "agent_sandbox_id" ||
-          key === "agent_thread_id" ||
-          key.startsWith("video-editor:")
-        ) {
-          localStorage.removeItem(key)
-        }
-      }
-    } catch {}
-    window.location.reload()
+  const handleRender = useCallback((preview: boolean) => {
+    if (projectRef.current.clips.length === 0) {
+      setRender({
+        url: null,
+        status: "error",
+        errorMessage: "Timeline is empty.",
+        upload: null,
+      })
+      return
+    }
+    setPendingPrompt(
+      formatSilentAction(
+        `render ${preview ? "draft preview" : "final"}`,
+        `Render the current project using render_project({ preview: ${preview} }).`,
+      ),
+    )
   }, [])
 
   const handleRenderPending = useCallback(() => {
@@ -731,98 +347,74 @@ function HomeContent() {
   }, [])
 
   const handlePromptConsumed = useCallback(() => setPendingPrompt(null), [])
-
-  const handleToggleChat = useCallback(() => setChatOpen((o) => !o), [])
+  const handleToggleChat = useCallback(() => setChatOpen((o) => !o), [setChatOpen])
 
   // ───────────────── keyboard shortcuts ─────────────────
 
-  const handleSplitAtPlayhead = useCallback(() => {
-    if (!selectedClipId) {
-      // No selection — find a clip under playhead.
-      const candidate = project.clips.find(
-        (c) => c.start <= playhead && c.start + c.length >= playhead,
-      )
-      if (!candidate) return
-      applyOpsWithHistory([{ op: "split_clip", clipId: candidate.id, at: playhead }])
-      return
-    }
-    const clip = getClip(project, selectedClipId)
-    if (!clip) return
-    if (playhead <= clip.start || playhead >= clip.start + clip.length) return
-    applyOpsWithHistory([{ op: "split_clip", clipId: selectedClipId, at: playhead }])
-  }, [project, playhead, selectedClipId, applyOpsWithHistory])
-
-  const nudgePlayhead = useCallback(
-    (delta: number) => {
-      const next = Math.max(0, playhead + delta)
-      setPlayhead(next)
-      previewRef.current?.seek(next)
+  useShortcuts(
+    {
+      Space: () => previewRef.current?.togglePlay(),
+      ArrowLeft: () => nudgePlayhead(-0.1),
+      ArrowRight: () => nudgePlayhead(0.1),
+      "Shift+ArrowLeft": () => nudgePlayhead(-1),
+      "Shift+ArrowRight": () => nudgePlayhead(1),
+      Home: () => handleSeekTo(0),
+      End: () => handleSeekTo(projectDuration(projectRef.current)),
+      Backspace: () => {
+        if (selectedClipId) handleRemoveClip(selectedClipId)
+      },
+      Delete: () => {
+        if (selectedClipId) handleRemoveClip(selectedClipId)
+      },
+      "Shift+Backspace": () => {
+        if (selectedClipId) handleRippleDeleteClip(selectedClipId)
+      },
+      "Shift+Delete": () => {
+        if (selectedClipId) handleRippleDeleteClip(selectedClipId)
+      },
+      S: () => handleSplitAtPlayhead(),
+      "Shift+S": () => handleRazorAtPlayhead(),
+      "Cmd+D": () => {
+        if (selectedClipId) handleDuplicateClip(selectedClipId)
+      },
+      Escape: () => setSelectedClipId(null),
+      "Cmd+K": () => setChatOpen((o) => !o),
+      "Cmd+Z": () => undo(),
+      "Cmd+Shift+Z": () => redo(),
+      "Cmd+Enter": () => handleRender(false),
+      "Cmd+P": () => handleRender(true),
+      "+": () => setZoomIdx((i) => Math.min(MAX_ZOOM_IDX, i + 1)),
+      "=": () => setZoomIdx((i) => Math.min(MAX_ZOOM_IDX, i + 1)),
+      "-": () => setZoomIdx((i) => Math.max(MIN_ZOOM_IDX, i - 1)),
+      "Cmd+=": () => setZoomIdx((i) => Math.min(MAX_ZOOM_IDX, i + 1)),
+      "Cmd+-": () => setZoomIdx((i) => Math.max(MIN_ZOOM_IDX, i - 1)),
     },
-    [playhead],
+    {
+      // Undo/redo win even over the agent chat textarea — otherwise Cmd+Z
+      // silently undoes text in the chat box instead of the timeline edit.
+      global: ["Cmd+Z", "Cmd+Shift+Z"],
+    },
   )
-
-  useShortcuts({
-    Space: () => previewRef.current?.togglePlay(),
-    ArrowLeft: () => nudgePlayhead(-0.1),
-    ArrowRight: () => nudgePlayhead(0.1),
-    "Shift+ArrowLeft": () => nudgePlayhead(-1),
-    "Shift+ArrowRight": () => nudgePlayhead(1),
-    Backspace: () => {
-      if (selectedClipId) handleRemoveClip(selectedClipId)
-    },
-    Delete: () => {
-      if (selectedClipId) handleRemoveClip(selectedClipId)
-    },
-    S: () => handleSplitAtPlayhead(),
-    Escape: () => setSelectedClipId(null),
-    "Cmd+K": () => setChatOpen((o) => !o),
-    "Cmd+Z": () => undo(),
-    "Cmd+Shift+Z": () => redo(),
-    "Cmd+Enter": () => handleRender(false),
-    "Cmd+P": () => handleRender(true),
-    "+": () => setZoomIdx((i) => Math.min(MAX_ZOOM_IDX, i + 1)),
-    "=": () => setZoomIdx((i) => Math.min(MAX_ZOOM_IDX, i + 1)),
-    "-": () => setZoomIdx((i) => Math.max(MIN_ZOOM_IDX, i - 1)),
-    "Cmd+=": () => setZoomIdx((i) => Math.min(MAX_ZOOM_IDX, i + 1)),
-    "Cmd+-": () => setZoomIdx((i) => Math.max(MIN_ZOOM_IDX, i - 1)),
-  })
 
   // ───────────────── render ─────────────────
 
-  if (error) {
-    return (
-      <main className="flex h-screen items-center justify-center bg-neutral-950 text-neutral-100">
-        <div className="space-y-2 text-center">
-          <p className="text-red-400">{error}</p>
-          <button
-            onClick={() => {
-              setError(null)
-              initRef.current = false
-              window.location.reload()
-            }}
-            className="text-sm text-neutral-400 underline hover:text-white"
-          >
-            Retry
-          </button>
-        </div>
-      </main>
-    )
+  if (session.error) {
+    return <BootError message={session.error} />
   }
 
-  const themeClass = colorMode === "dark" ? "dark" : ""
-
   return (
-    <div className={`flex h-screen flex-col bg-neutral-950 text-neutral-100 ${themeClass}`}>
+    <TooltipProvider delayDuration={300}>
+      <div className={`flex h-screen flex-col bg-neutral-950 text-neutral-100 ${colorMode === "dark" ? "dark" : ""}`}>
       <TopBar
         output={project.output}
         duration={duration}
         onUpdateOutput={handleUpdateOutput}
         onToggleChat={handleToggleChat}
         chatOpen={chatOpen}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
+        onSplit={handleSplitAtPlayhead}
+        canSplit={canSplit}
+        onExport={() => handleRender(false)}
+        exportDisabled={render.status === "rendering" || duration === 0}
       />
 
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
@@ -846,12 +438,17 @@ function HomeContent() {
                 project={project}
                 playhead={playhead}
                 onPlayhead={setPlayhead}
+                selectedTrackId={selectedTrackId}
                 renderedUrl={render.url}
                 renderStatus={render.status}
                 renderError={render.errorMessage}
                 lastUpload={render.upload}
                 onRender={handleRender}
                 renderBusy={render.status === "rendering"}
+                onUndo={undo}
+                onRedo={redo}
+                canUndo={canUndo}
+                canRedo={canRedo}
               />
             }
             bottom={
@@ -860,103 +457,224 @@ function HomeContent() {
                 selectedClipId={selectedClipId}
                 onSelectClip={setSelectedClipId}
                 onUpdateClip={handleUpdateClipFromTimeline}
+                onInspectorPatch={handleUpdateClipFromInspector}
                 onDropAsset={handleDropAsset}
                 playhead={playhead}
-                onSeek={(s) => {
-                  setPlayhead(s)
-                  previewRef.current?.seek(s)
-                }}
+                onSeek={handleSeekTo}
                 zoomIdx={zoomIdx}
                 onChangeZoomIdx={setZoomIdx}
                 onAddTrack={handleAddTrack}
                 onRemoveTrack={handleRemoveTrack}
+                onReorderTrack={handleReorderTrack}
+                onSplitClip={handleSplitClip}
+                onDuplicateClip={handleDuplicateClip}
+                onDeleteClip={handleRemoveClip}
               />
             }
-          />
-
-          <InspectorDrawer
-            project={project}
-            selectedClipId={selectedClipId}
-            onUpdateClip={handleUpdateClipFromInspector}
-            onRemoveClip={handleRemoveClip}
-            onClose={() => setSelectedClipId(null)}
           />
         </section>
 
         {chatOpen && (
-          <aside className="flex h-full w-[380px] shrink-0 min-w-0 flex-col border-l border-neutral-800 bg-neutral-950">
-            <div className="flex shrink-0 items-center gap-2 border-b border-neutral-800 px-3 py-1.5 text-[11px] text-neutral-400">
-              <span className="font-medium text-neutral-200">Agent</span>
-              <span className="flex-1" />
-              {project.assets.length > 0 && (
-                <div className="flex gap-1">
-                  {SAMPLE_PROMPTS.slice(0, 3).map((p) => (
-                    <button
-                      key={p.title}
-                      type="button"
-                      onClick={() => setPendingPrompt(p.prompt)}
-                      className="rounded border border-neutral-700 px-1.5 py-0.5 text-[10px] text-neutral-400 hover:bg-white/5 hover:text-white"
-                      title={p.prompt}
-                    >
-                      {p.title}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={handleResetSession}
-                className="rounded px-1.5 py-0.5 text-[10px] text-neutral-500 hover:text-neutral-200"
-                title="Clear sandbox + project"
-              >
-                Reset
-              </button>
-              <button
-                type="button"
-                onClick={() => setChatOpen(false)}
-                className="rounded px-1.5 py-0.5 text-neutral-500 hover:text-neutral-100"
-                title="Close (⌘K)"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="flex-1 min-h-0">
-              {sandboxId && threadId ? (
-                <ChatPanel
-                  sandboxId={sandboxId}
-                  threadId={threadId}
-                  colorMode={colorMode}
-                  project={project}
-                  onApplyOps={applyOpsWithHistory}
-                  onProbeResult={handleProbeResult}
-                  onRenderResult={setRender}
-                  onRenderPending={handleRenderPending}
-                  pendingPrompt={pendingPrompt}
-                  onPromptConsumed={handlePromptConsumed}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm text-neutral-500">
-                  {agentOnline ? "" : "Loading…"}
-                </div>
-              )}
-            </div>
-          </aside>
+          <ChatSidebar
+            sandboxId={session.sandboxId}
+            threadId={session.threadId}
+            colorMode={colorMode}
+            project={project}
+            onApplyOps={applyOpsWithHistory}
+            onProbeResult={handleProbeResult}
+            onRenderResult={setRender}
+            onRenderPending={handleRenderPending}
+            pendingPrompt={pendingPrompt}
+            onPromptConsumed={handlePromptConsumed}
+            onClose={() => setChatOpen(false)}
+            samplePrompts={SAMPLE_PROMPTS}
+            onSamplePrompt={setPendingPrompt}
+          />
         )}
       </div>
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }
 
-export default function Home() {
+// ───────────────── helpers ─────────────────
+
+function useResolvedColorMode(): ColorMode {
+  const searchParams = useSearchParams()
+  const param = searchParams.get("theme")
+  const override = param === "light" || param === "dark" ? param : undefined
+  return useColorMode(override)
+}
+
+/** Hydrate the project from localStorage once the sandbox is known, and
+ * mirror subsequent edits back to storage. */
+function useProjectPersistence(
+  sandboxId: string | null,
+  project: Project,
+  setProject: (project: Project, snapshot?: boolean) => void,
+) {
+  const hydratedRef = useRef(false)
+
+  useEffect(() => {
+    if (!sandboxId || hydratedRef.current) return
+    const stored = readStorage<Project>(projectStoreKey(sandboxId))
+    if (stored && Array.isArray(stored.tracks) && Array.isArray(stored.clips)) {
+      setProject(stored, false)
+    }
+    hydratedRef.current = true
+  }, [sandboxId, setProject])
+
+  // Mirror edits back to storage — but only AFTER hydration finished, else
+  // the first commit with the freshly-booted sandbox id would clobber the
+  // stored project with the empty `newProject()` default before the hydrate
+  // effect has a chance to run.
+  useEffect(() => {
+    if (!sandboxId || !hydratedRef.current) return
+    writeStorage(projectStoreKey(sandboxId), project)
+  }, [sandboxId, project])
+}
+
+function isInterior(clip: Clip, t: number): boolean {
+  return t > clip.start + SPLIT_MIN_OFFSET && t < clip.start + clip.length - SPLIT_MIN_OFFSET
+}
+
+function findSplittableClip(
+  project: Project,
+  playhead: number,
+  selectedClipId: UUID | null,
+): Clip | undefined {
+  if (selectedClipId) {
+    const selected = getClip(project, selectedClipId)
+    if (selected && isInterior(selected, playhead)) return selected
+  }
+  return project.clips.find((c) => isInterior(c, playhead))
+}
+
+/** Build the op batch for duplicating a clip right after itself, carrying over
+ * clip-side state (volume, text overlay) that `add_clip` does not seed. The
+ * insertion point is pushed forward past any overlapping neighbour. */
+function duplicateClipOps(project: Project, clip: Clip): Op[] {
+  const duplicateId = newId("clip")
+  const preferredStart = clip.start + clip.length
+  const start = findNearestFreeStart(project, clip.trackId, clip.length, preferredStart)
+  const ops: Op[] = [
+    {
+      op: "add_clip",
+      clipId: duplicateId,
+      trackId: clip.trackId,
+      assetId: clip.assetId,
+      start,
+      length: clip.length,
+      trimIn: clip.trimIn,
+    },
+  ]
+  if (typeof clip.volume === "number") {
+    ops.push({ op: "set_volume", clipId: duplicateId, volume: clip.volume })
+  }
+  if (clip.textOverlay) {
+    ops.push({
+      op: "set_text_overlay",
+      clipId: duplicateId,
+      text: clip.textOverlay.text,
+      position: clip.textOverlay.position,
+      color: clip.textOverlay.color,
+      fontSize: clip.textOverlay.fontSize,
+    })
+  }
+  return ops
+}
+
+/** Heuristic clip length used when dropping an asset on the timeline — must
+ * stay in sync with `add_clip`'s default length derivation so the no-overlap
+ * clamp reflects what the reducer will create. */
+function estimateDropLength(asset: Asset | undefined): number {
+  if (!asset) return 5
+  if (asset.kind === "image") return 5
+  if (asset.duration && asset.duration > 0) return asset.duration
+  return 5
+}
+
+/**
+ * Clamp a drag-emitted patch (`move`, `trim-left`, `trim-right`) so the edit
+ * keeps the clip inside its track's free space. The ClipBlock drag layer
+ * emits patches optimistically every pointermove; we resolve them here so the
+ * reducer never sees an overlapping placement.
+ */
+function resolveNonOverlappingPatch(
+  project: Project,
+  clip: Clip,
+  patch: { start?: number; length?: number; trimIn?: number; trackId?: string },
+): { start?: number; length?: number; trimIn?: number; trackId?: string } {
+  const targetTrackId = patch.trackId ?? clip.trackId
+  const result: typeof patch = { ...patch }
+
+  // Case A: trim-left. ClipBlock sets start, trimIn, and length together,
+  // keeping `start + length` equal to the clip's original right edge.
+  if (
+    patch.start !== undefined &&
+    patch.trimIn !== undefined &&
+    patch.length !== undefined &&
+    patch.trackId === undefined
+  ) {
+    const originalEnd = clip.start + clip.length
+    const prev = clipsOnTrack(project, clip.trackId)
+      .filter((c) => c.id !== clip.id && c.start + c.length <= clip.start + 0.001)
+      .pop()
+    const minStart = prev ? prev.start + prev.length : 0
+    const clampedStart = Math.max(minStart, patch.start)
+    if (clampedStart !== patch.start) {
+      const shift = clampedStart - patch.start
+      result.start = clampedStart
+      result.trimIn = Math.max(0, patch.trimIn + shift)
+      result.length = Math.max(0.1, originalEnd - clampedStart)
+    }
+    return result
+  }
+
+  // Case B: trim-right. Only length changes; start/trackId/trimIn stay put.
+  if (
+    patch.length !== undefined &&
+    patch.start === undefined &&
+    patch.trimIn === undefined &&
+    patch.trackId === undefined
+  ) {
+    const next = clipsOnTrack(project, clip.trackId)
+      .find((c) => c.id !== clip.id && c.start >= clip.start + clip.length - 0.001)
+    const maxLength = next ? Math.max(0.1, next.start - clip.start) : patch.length
+    result.length = Math.min(patch.length, maxLength)
+    return result
+  }
+
+  // Case C: move. start and/or trackId may have changed.
+  if (patch.start !== undefined || patch.trackId !== undefined) {
+    const targetLength = patch.length ?? clip.length
+    const requested = patch.start ?? clip.start
+    const clamped = clampStartNonOverlapping(
+      project,
+      targetTrackId,
+      clip.id,
+      targetLength,
+      requested,
+      clip.start,
+    )
+    result.start = clamped
+  }
+  return result
+}
+
+function BootError({ message }: { message: string }) {
   return (
-    <Suspense
-      fallback={
-        <main className="flex h-screen items-center justify-center bg-neutral-950 text-neutral-100">
-          Loading…
-        </main>
-      }
-    >
-      <HomeContent />
-    </Suspense>
+    <main className="flex h-screen items-center justify-center bg-neutral-950 text-neutral-100">
+      <div className="space-y-2 text-center">
+        <p className="text-red-400">{message}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="text-sm text-neutral-400 underline hover:text-white"
+        >
+          Retry
+        </button>
+      </div>
+    </main>
   )
 }

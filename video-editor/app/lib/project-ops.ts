@@ -100,6 +100,13 @@ export type Op =
       trackId: UUID
     }
   | {
+      op: "move_track"
+      trackId: UUID
+      /** Zero-based index in the final `tracks` array. Clamped to
+       * `[0, tracks.length - 1]`. */
+      toIndex: number
+    }
+  | {
       op: "clear_timeline"
     }
 
@@ -268,6 +275,17 @@ export function applyOp(project: Project, op: Op): Project {
         tracks: project.tracks.filter((t) => t.id !== op.trackId),
         clips: project.clips.filter((c) => c.trackId !== op.trackId),
       }
+    }
+
+    case "move_track": {
+      const fromIndex = project.tracks.findIndex((t) => t.id === op.trackId)
+      if (fromIndex === -1) return project
+      const toIndex = Math.max(0, Math.min(project.tracks.length - 1, op.toIndex))
+      if (fromIndex === toIndex) return project
+      const next = project.tracks.slice()
+      const [moved] = next.splice(fromIndex, 1)
+      next.splice(toIndex, 0, moved!)
+      return { ...project, tracks: next }
     }
 
     case "clear_timeline": {

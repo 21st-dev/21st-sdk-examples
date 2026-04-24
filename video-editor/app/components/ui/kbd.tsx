@@ -5,17 +5,26 @@ import type { ReactNode } from "react"
 /**
  * Inline keyboard-shortcut chip. Meant to live inside a Button next to its
  * label so the shortcut is always visible, not hidden in tooltip.
+ *
+ * `variant` adapts to the parent surface: use "light" when the chip sits on
+ * a bright background (e.g. a primary button), otherwise keep "dark".
  */
 export function Kbd({
   children,
   className = "",
+  variant = "dark",
 }: {
   children: ReactNode
   className?: string
+  variant?: "dark" | "light"
 }) {
+  const variantCls =
+    variant === "light"
+      ? "border-neutral-900/15 bg-neutral-900/5 text-neutral-600"
+      : "border-neutral-700 bg-neutral-900/80 text-neutral-400 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]"
   return (
     <kbd
-      className={`inline-flex select-none items-center justify-center rounded border border-neutral-700 bg-neutral-900/80 px-1 py-[1px] font-sans text-[10px] leading-none text-neutral-400 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)] ${className}`}
+      className={`inline-flex select-none items-center justify-center rounded border px-1 py-[1px] font-sans text-[10px] leading-none ${variantCls} ${className}`}
     >
       {children}
     </kbd>

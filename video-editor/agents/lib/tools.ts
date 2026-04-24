@@ -77,7 +77,7 @@ export const videoEditorTools = {
     description: [
       "Apply one or more ops to the user's current timeline project.",
       "The client state is the source of truth — you only send ops, never the full project.",
-      "Ops include: add_asset, update_asset, remove_asset, add_clip, remove_clip, move_clip, trim_clip, set_volume, set_text_overlay, set_output, add_track, remove_track, clear_timeline.",
+      "Ops include: add_asset, update_asset, remove_asset, add_clip, remove_clip, move_clip, trim_clip, split_clip, set_volume, set_text_overlay, set_output, add_track, remove_track, move_track, clear_timeline.",
     ].join(" "),
     inputSchema: z.object({
       ops: z.array(opSchema).min(1),
