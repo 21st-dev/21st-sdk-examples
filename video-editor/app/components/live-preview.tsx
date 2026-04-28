@@ -103,12 +103,13 @@ export const LivePreview = forwardRef<LivePreviewHandle, LivePreviewProps>(
     const audioRefsRef = useRef<Map<string, HTMLAudioElement>>(new Map())
 
     const duration = useMemo(() => projectDuration(project), [project])
-    const aspect =
+    const [aspectNum, aspectDen] =
       project.output.aspectRatio === "9:16"
-        ? "9 / 16"
+        ? [9, 16]
         : project.output.aspectRatio === "1:1"
-          ? "1 / 1"
-          : "16 / 9"
+          ? [1, 1]
+          : [16, 9]
+    const aspect = `${aspectNum} / ${aspectDen}`
 
     // Auto-switch to rendered mode right after a render completes, but let the
     // user flip back to live to keep editing.
@@ -241,10 +242,21 @@ export const LivePreview = forwardRef<LivePreviewHandle, LivePreviewProps>(
 
     return (
       <div className="flex h-full min-h-0 flex-col bg-black">
-        <div className="relative flex min-h-0 flex-1 items-center justify-center p-4">
+        <div
+          className="relative flex min-h-0 flex-1 items-center justify-center p-4"
+          style={{ containerType: "size" }}
+        >
           <div
-            className="relative flex h-full items-center justify-center overflow-hidden rounded-md bg-black shadow-2xl"
-            style={{ aspectRatio: aspect, maxWidth: "100%", maxHeight: "100%" }}
+            className="relative flex items-center justify-center overflow-hidden rounded-md bg-black shadow-2xl"
+            style={{
+              aspectRatio: aspect,
+              // Largest aspect-correct rectangle that fits the parent's content
+              // box. `cqw`/`cqh` resolve against the flex parent above (which
+              // declares `containerType: size`). Without this, `h-full` +
+              // `aspectRatio` + `maxWidth: 100%` would let one dimension clamp
+              // independently and the box would stop changing shape.
+              width: `min(100cqw, calc(100cqh * ${aspectNum} / ${aspectDen}))`,
+            }}
           >
             {/* Rendered MP4 layer */}
             {showRendered && renderedUrl && (
